@@ -1,0 +1,89 @@
+@import url(https://fonts.googleapis.com/css?family=Inter:100,200,300,regular,500,600,700,800,900);
+html {
+   box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+   box-sizing: inherit;
+}
+
+body {
+   font-family: 'Inter', sans-serif;
+   font-weight: 400;
+   font-size: 14px;
+   line-height: 1.4;
+   background-color: #fff;
+}
+
+a {
+   text-decoration: none;
+   color: inherit;
+
+}
+
+ul {
+   list-style: none;
+}
+
+button {
+   background-color: transparent;
+   border: 0;
+   padding: 0;
+   cursor: pointer;
+}
+
+.container{
+   max-width: 1220px;
+   padding: 0 10px;
+   margin: 0 auto;
+}
+
+.st{
+text-align: center;
+
+}
+
+.st__title{
+   font-size: 28px;
+   text-transform: uppercase;
+   font-weight: 600;
+   background-color: rgb(53, 53, 171);
+   color: #fff;
+   width: fit-content;
+   margin: 0 auto;
+   padding: 15px 25px;
+   border-radius: 20px;
+   margin-bottom: 50px;
+   margin-top: 20px;
+
+}
+
+#submitBtn{
+   margin-left: 10px;
+   background-color: rgb(53, 53, 171);
+   padding: 10px 20px;
+   color: #fff;
+   text-transform: uppercase;
+   border-radius: 15px;
+}
+
+input{
+   padding: 10px 20px;
+}
+
+input:focus {
+   outline: 2px solid rgb(42, 167, 49);
+}
+
+input::placeholder{
+   font-family: 'Inter', sans-serif;
+   font-weight: 400;
+   font-size: 14px;
+   line-height: 1.4;
+}
+
+#result{
+  
+}

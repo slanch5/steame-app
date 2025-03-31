@@ -7,6 +7,9 @@ document.addEventListener("DOMContentLoaded", function () {
        }
 
        function formatPlaytime(minutes) {
+           if (minutes === 0) {
+               return "Час невизначений";
+           }
            const hours = Math.floor(minutes / 60);
            const remainingMinutes = minutes % 60;
            return `${hours}h ${remainingMinutes}m`;
@@ -24,37 +27,14 @@ document.addEventListener("DOMContentLoaded", function () {
            resultDiv.innerHTML = "";
            
            const userInfo = document.createElement("div");
-userInfo.innerHTML = `
-    <h3 class="">User Info</h3>
-    <a href="${data?.user.player.profileurl || '#'}" target="_blank">
-        <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50" style="border-radius: 50%;">
-    </a>
-    <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
-`;
+           userInfo.innerHTML = `
+               <h3 class="">User Info</h3>
+               <a href="${data?.user.player.profileurl || '#'}" target="_blank">
+                   <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50" style="border-radius: 50%;">
+               </a>
+               <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
+           `;
 
-           
-           const friendsInfo = document.createElement("div");
-           friendsInfo.innerHTML = `<h3>Friends</h3><p>Total: ${data.friends?.friends?.length || 0}</p>`;
-           
-           if (data.friends?.friends?.length) {
-               const friendsList = document.createElement("div");
-               friendsList.style.display = "grid";
-               friendsList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-               friendsList.style.gap = "15px";
-               
-               data.friends.friends.forEach(friend => {
-                   const friendItem = document.createElement("div");
-                   friendItem.style.textAlign = "center";
-                   friendItem.innerHTML = `
-                       <img  src="${friend.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50" style="border-radius: 50%;">
-                       <br>
-                       <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">${friend.personaname || "Unknown"}</a>
-                   `;
-                   friendsList.appendChild(friendItem);
-               });
-               friendsInfo.appendChild(friendsList);
-           }
-           
            const gamesInfo = document.createElement("div");
            gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
            
@@ -80,8 +60,8 @@ userInfo.innerHTML = `
                        <img src="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg" alt="Game Icon" width="50" height="50" style="border-radius: 4px;">
                        <br>
                        ${game.name || "Unknown Game"}
-                        <br>
-                        ${playtimeFormatted}
+                       <br>
+                       ${playtimeFormatted}
                    `;
                    gamesList.appendChild(gameItem);
                }
@@ -108,7 +88,6 @@ userInfo.innerHTML = `
            gamesInfo.appendChild(moreGamesBtn);
            
            resultDiv.appendChild(userInfo);
-           resultDiv.appendChild(friendsInfo);
            resultDiv.appendChild(gamesInfo);
 
            loadMoreGames();

@@ -2,8 +2,13 @@ document.addEventListener("DOMContentLoaded", function () {
    document.getElementById("submitBtn").addEventListener("click", async function () {
        const steamId = document.getElementById("steamIdInput").value;
        if (!steamId) {
-           alert("Please enter a Steam ID!");
-           return;
+         Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Акаунт приватний або ви не вели свій steam id",
+            footer: ''
+          });
+           
        }
 
        function formatPlaytime(minutes) {
@@ -18,6 +23,11 @@ document.addEventListener("DOMContentLoaded", function () {
                throw new Error("Failed to fetch data");
            }
            const data = await response.json();
+           Swal.fire({
+            title: "Дані отримано",
+            text: "Перейдемо до вашого профілю",
+            icon: "success"
+          });
            console.log("Fetched data:", data);
            
            const resultDiv = document.getElementById("result");
@@ -27,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
 userInfo.innerHTML = `
     <h3 class="">User Info</h3>
     <a href="${data?.user.player.profileurl || '#'}" target="_blank">
-        <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50" style="border-radius: 50%;">
+        <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" class='img__user'>
     </a>
     <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
 `;
@@ -116,7 +126,12 @@ userInfo.innerHTML = `
 
            loadMoreGames();
        } catch (error) {
-           document.getElementById("result").innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+         Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Акаунт приватний або ви не вели свій steam id",
+            footer: ''
+          });
        }
    });
 });

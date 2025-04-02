@@ -50,7 +50,7 @@ userInfo.innerHTML = `
                const friendsList = document.createElement("div");
                friendsList.style.display = "grid";
                friendsList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-               friendsList.style.gap = "15px";
+               friendsList.style.gap = "20px";
                
                data.friends.friends.forEach(friend => {
                    const friendItem = document.createElement("div");
@@ -71,7 +71,7 @@ userInfo.innerHTML = `
            const gamesList = document.createElement("div");
            gamesList.style.display = "grid";
            gamesList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-           gamesList.style.gap = "10px";
+           gamesList.style.gap = "15px";
            
            let displayedGames = 0;
            const gamesPerPage = 100;
@@ -85,9 +85,12 @@ userInfo.innerHTML = `
                    const game = data.games.games[i];
                    const gameItem = document.createElement("div");
                    gameItem.style.textAlign = "center";
+                   gameItem.style.width = '100px'
+                   gameItem.style.height = '180px'
+                  
                    const playtimeFormatted = formatPlaytime(game.playtime_forever);
                    gameItem.innerHTML = `
-                       <img src="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg" alt="Game Icon" width="50" height="50" style="border-radius: 4px;">
+                       <img src="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg" alt="Game Icon" width="50" height="50" style="border-radius: 50%;">
                        <br>
                        ${game.name || "Unknown Game"}
                         <br>

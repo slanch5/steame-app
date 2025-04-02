@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function () {
             text: "Акаунт приватний або ви не ввели свій Steam ID",
             footer: ''
           });
-         return; // Додаємо return, щоб не виконувалась решта коду
+         return; 
        }
 
        function formatPlaytime(minutes) {
@@ -69,7 +69,7 @@ document.addEventListener("DOMContentLoaded", function () {
            const gamesInfo = document.createElement("div");
            gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
 
-           if (data.games?.game_count > 0) { // Перевіряємо, чи є ігри у користувача
+           if (data.games?.game_count > 0) { 
                const gamesList = document.createElement("div");
                gamesList.style.display = "grid";
                gamesList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";

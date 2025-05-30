@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
                throw new Error("Failed to fetch data");
            }
            const data = await response.json();
+           
 
            Swal.fire({
             title: "Дані отримано",
@@ -67,61 +68,96 @@ document.addEventListener("DOMContentLoaded", function () {
            }
            
            const gamesInfo = document.createElement("div");
-           gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
+gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
 
-           if (data.games?.game_count > 0) { 
-               const gamesList = document.createElement("div");
-               gamesList.style.display = "grid";
-               gamesList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-               gamesList.style.gap = "15px";
+if (data.games?.game_count > 0) {
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.placeholder = "Search games...";
+    Object.assign(searchInput.style, {
+        width: "50%",
+        marginBottom: "20px",
+        
+        padding: "8px",
+        borderRadius: "5px",
+        border: "1px solid #ccc"
+    });
 
-               let displayedGames = 0;
-               const gamesPerPage = 100;
+    const gamesList = document.createElement("div");
+    gamesList.style.display = "grid";
+    gamesList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
+    gamesList.style.gap = "15px";
 
-               function loadMoreGames() {
-                   const remainingGames = data.games.games.length - displayedGames;
-                   const gamesToShow = Math.min(gamesPerPage, remainingGames);
-                   
-                   for (let i = displayedGames; i < displayedGames + gamesToShow; i++) {
-                       if (!data.games.games[i]) break;
-                       const game = data.games.games[i];
-                       const gameItem = document.createElement("div");
-                       gameItem.style.textAlign = "center";
-                       gameItem.style.width = '100px';
-                       gameItem.style.height = '180px';
+    let displayedGames = 0;
+    const gamesPerPage = 100;
+    let filteredGames = [...data.games.games];
 
-                       const playtimeFormatted = formatPlaytime(game.playtime_forever);
-                       gameItem.innerHTML = `
-                           <img src="https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg" alt="Game Icon" width="50" height="50" style="border-radius: 50%;">
-                           <br>
-                           ${game.name || "Unknown Game"}
-                           <br>
-                           <p>${playtimeFormatted}</p>
-                       `;
-                       gamesList.appendChild(gameItem);
-                   }
-                   displayedGames += gamesToShow;
-                   if (displayedGames >= data.games.games.length) {
-                       moreGamesBtn.style.display = "none";
-                   }
-               }
+    function loadMoreGames() {
+        const remainingGames = filteredGames.length - displayedGames;
+        const gamesToShow = Math.min(gamesPerPage, remainingGames);
 
-               const moreGamesBtn = document.createElement("button");
-               moreGamesBtn.textContent = "More Games";
-               moreGamesBtn.style.padding = "10px 20px";
-               moreGamesBtn.style.marginTop = "10px";
-               moreGamesBtn.style.backgroundColor = "#007bff";
-               moreGamesBtn.style.color = "white";
-               moreGamesBtn.style.border = "none";
-               moreGamesBtn.style.borderRadius = "5px";
-               moreGamesBtn.style.cursor = "pointer";
-               moreGamesBtn.addEventListener("mouseenter", () => moreGamesBtn.style.backgroundColor = "#0056b3");
-               moreGamesBtn.addEventListener("mouseleave", () => moreGamesBtn.style.backgroundColor = "#007bff");
-               moreGamesBtn.addEventListener("click", loadMoreGames);
+        for (let i = displayedGames; i < displayedGames + gamesToShow; i++) {
+            if (!filteredGames[i]) break;
+            const game = filteredGames[i];
+            const gameItem = document.createElement("div");
+            gameItem.style.textAlign = "center";
+            gameItem.style.width = '100px';
+            gameItem.style.height = '180px';
 
-               gamesInfo.appendChild(gamesList);
-               gamesInfo.appendChild(moreGamesBtn);
-               loadMoreGames();
+            const playtimeFormatted = formatPlaytime(game.playtime_forever);
+            const imgSrc = game.img_icon_url
+                ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
+                : "https://via.placeholder.com/50";
+
+            gameItem.innerHTML = `
+                <img src="${imgSrc}" alt="Game Icon" width="50" height="50" style="border-radius: 50%; ">
+                <br>${game.name || "Unknown Game"}<br>
+                <p>${playtimeFormatted}</p>
+            `;
+            gamesList.appendChild(gameItem);
+        }
+
+        displayedGames += gamesToShow;
+        if (displayedGames >= filteredGames.length) {
+            moreGamesBtn.style.display = "none";
+        }
+    }
+
+    const moreGamesBtn = document.createElement("button");
+    moreGamesBtn.textContent = "More Games";
+    Object.assign(moreGamesBtn.style, {
+        padding: "10px 20px",
+        marginTop: "10px",
+        backgroundColor: "#007bff",
+        color: "white",
+        border: "none",
+        borderRadius: "5px",
+        cursor: "pointer"
+    });
+    moreGamesBtn.addEventListener("mouseenter", () => moreGamesBtn.style.backgroundColor = "#0056b3");
+    moreGamesBtn.addEventListener("mouseleave", () => moreGamesBtn.style.backgroundColor = "#007bff");
+    moreGamesBtn.addEventListener("click", loadMoreGames);
+
+    // 🔍 Пошук
+    searchInput.addEventListener("input", () => {
+        const query = searchInput.value.toLowerCase();
+        filteredGames = data.games.games.filter(game =>
+            game.name.toLowerCase().includes(query)
+        );
+        displayedGames = 0;
+        gamesList.innerHTML = "";
+        moreGamesBtn.style.display = filteredGames.length > 0 ? "block" : "none";
+        loadMoreGames();
+    });
+
+    gamesInfo.appendChild(searchInput);
+    gamesInfo.appendChild(gamesList);
+   const buttonWrapper = document.createElement("div");
+   buttonWrapper.style.textAlign = "center";
+   buttonWrapper.appendChild(moreGamesBtn);
+
+   gamesInfo.appendChild(buttonWrapper);
+    loadMoreGames();
            }
 
            resultDiv.appendChild(userInfo);

@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", function () {
                    const friendItem = document.createElement("div");
                    friendItem.style.textAlign = "center";
                    friendItem.innerHTML = `
-                       <img src="${friend.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50" style="border-radius: 50%;">
+                       <img src="${friend.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50">
                        <br>
                        <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">${friend.personaname || "Unknown"}</a>
                    `;
@@ -73,7 +73,7 @@ gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p
 if (data.games?.game_count > 0) {
     const searchInput = document.createElement("input");
     searchInput.type = "text";
-    searchInput.placeholder = "Search games...";
+    searchInput.placeholder = "Ведіть назву гри.";
     Object.assign(searchInput.style, {
         width: "50%",
         marginBottom: "20px",
@@ -110,7 +110,7 @@ if (data.games?.game_count > 0) {
                 : "https://via.placeholder.com/50";
 
             gameItem.innerHTML = `
-                <img src="${imgSrc}" alt="Game Icon" width="50" height="50" style="border-radius: 50%; ">
+                <img src="${imgSrc}" alt="Game Icon" width="50" height="50">
                 <br>${game.name || "Unknown Game"}<br>
                 <p>${playtimeFormatted}</p>
             `;
@@ -132,7 +132,8 @@ if (data.games?.game_count > 0) {
         color: "white",
         border: "none",
         borderRadius: "5px",
-        cursor: "pointer"
+        cursor: "pointer",
+        margin: '0 auto'
     });
     moreGamesBtn.addEventListener("mouseenter", () => moreGamesBtn.style.backgroundColor = "#0056b3");
     moreGamesBtn.addEventListener("mouseleave", () => moreGamesBtn.style.backgroundColor = "#007bff");
@@ -149,6 +150,27 @@ if (data.games?.game_count > 0) {
         moreGamesBtn.style.display = filteredGames.length > 0 ? "block" : "none";
         loadMoreGames();
     });
+
+    const topGame = data.games.games.reduce((max, game) => {
+    return (game.playtime_forever > max.playtime_forever) ? game : max;
+}, data.games.games[0]);
+
+const topGameDiv = document.createElement("div");
+topGameDiv.style.marginBottom = "20px";
+topGameDiv.style.textAlign = "center";
+
+const topGameImg = topGame.img_icon_url
+    ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${topGame.appid}/${topGame.img_icon_url}.jpg`
+    : "https://placehold.co/50x50";
+
+topGameDiv.innerHTML = `
+    <h4> Найбільше часу проведено у:</h4>
+    <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
+    <strong>${topGame.name}</strong><br>
+    <p>${formatPlaytime(topGame.playtime_forever)}</p>
+`;
+
+gamesInfo.appendChild(topGameDiv);
 
     gamesInfo.appendChild(searchInput);
     gamesInfo.appendChild(gamesList);

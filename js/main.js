@@ -1,198 +1,173 @@
 document.addEventListener("DOMContentLoaded", function () {
-   document.getElementById("submitBtn").addEventListener("click", async function () {
-       const steamId = document.getElementById("steamIdInput").value;
-       if (!steamId) {
-         Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Акаунт приватний або ви не ввели свій Steam ID",
-            footer: ''
-          });
-         return; 
-       }
+  document.getElementById("submitBtn").addEventListener("click", async function () {
+    const steamId = document.getElementById("steamIdInput").value;
+    if (!steamId) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Акаунт приватний або ви не ввели свій Steam ID",
+        footer: ''
+      });
+      return;
+    }
 
-       function formatPlaytime(minutes) {
-           const hours = Math.floor(minutes / 60);
-           const remainingMinutes = minutes % 60;
-           return `${hours}h ${remainingMinutes}m`;
-       }
+    function formatPlaytime(minutes) {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours}h ${remainingMinutes}m`;
+    }
 
-       try {
-           const response = await fetch(`http://localhost:8000/user/${steamId}`);
-           if (!response.ok) {
-               throw new Error("Failed to fetch data");
-           }
-           const data = await response.json();
-           
+    try {
+      const response = await fetch(`http://localhost:8000/user/${steamId}`);
+      if (!response.ok) throw new Error("Failed to fetch data");
+      const data = await response.json();
+      
+      
 
-           Swal.fire({
-            title: "Дані отримано",
-            text: "Перейдемо до вашого профілю",
-            icon: "success"
-          });
+      Swal.fire({
+        title: "Дані отримано",
+        text: "Перейдемо до вашого профілю",
+        icon: "success"
+      });
 
-           console.log("Fetched data:", data);
-           
-           const resultDiv = document.getElementById("result");
-           resultDiv.innerHTML = "";
-           
-           const userInfo = document.createElement("div");
-           userInfo.innerHTML = `
-               <h3>User Info</h3>
-               <a href="${data?.user.player.profileurl || '#'}" target="_blank">
-                   <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" class='img__user'>
-               </a>
-               <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
-           `;
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
 
-           const friendsInfo = document.createElement("div");
-           friendsInfo.innerHTML = `<h3>Friends</h3><p>Total: ${data.friends?.friends?.length || 0}</p>`;
+      const userInfo = document.createElement("div");
+      userInfo.innerHTML = `
+        <h3>User Info</h3>
+        <a href="${data?.user.player.profileurl || '#'}" target="_blank">
+          <img src="${data?.user.player.avatar || 'https://via.placeholder.com/50'}" class='img__user'>
+        </a>
+        <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
+      `;
 
-           if (data.friends?.friends?.length) {
-               const friendsList = document.createElement("div");
-               friendsList.style.display = "grid";
-               friendsList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-               friendsList.style.gap = "20px";
-               
-               data.friends.friends.forEach(friend => {
-                   const friendItem = document.createElement("div");
-                   friendItem.style.textAlign = "center";
-                   friendItem.innerHTML = `
-                       <img src="${friend.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50">
-                       <br>
-                       <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">${friend.personaname || "Unknown"}</a>
-                   `;
-                   friendsList.appendChild(friendItem);
-               });
-               friendsInfo.appendChild(friendsList);
-           }
-           
-           const gamesInfo = document.createElement("div");
-gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
+      const friendsInfo = document.createElement("div");
+      friendsInfo.innerHTML = `<h3>Friends</h3><p>Total: ${data.friends?.friends?.length || 0}</p>`;
+      
 
-if (data.games?.game_count > 0) {
-    const searchInput = document.createElement("input");
-    searchInput.type = "text";
-    searchInput.placeholder = "Ведіть назву гри.";
-    Object.assign(searchInput.style, {
-        width: "50%",
-        marginBottom: "20px",
-        
-        padding: "8px",
-        borderRadius: "5px",
-        border: "1px solid #ccc"
-    });
+      if (data.friends?.friends?.length) {
+        const friendsList = document.createElement("div");
+        friendsList.classList.add("games-grid");
 
-    const gamesList = document.createElement("div");
-    gamesList.style.display = "grid";
-    gamesList.style.gridTemplateColumns = "repeat(auto-fill, minmax(100px, 1fr))";
-    gamesList.style.gap = "15px";
+        data.friends.friends.forEach(friend => {
+          const friendItem = document.createElement("div");
+          friendItem.classList.add("friend-item",'fade-in');
+          friendItem.innerHTML = `
+            <img src="${friend.avatar || 'https://via.placeholder.com/50'}" alt="Avatar" width="50" height="50"><br>
+            <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">${friend.personaname || "Unknown"}</a>
+          `;
+          friendsList.appendChild(friendItem);
+        });
 
-    let displayedGames = 0;
-    const gamesPerPage = 100;
-    let filteredGames = [...data.games.games];
+        friendsInfo.appendChild(friendsList);
+      }
 
-    function loadMoreGames() {
-        const remainingGames = filteredGames.length - displayedGames;
-        const gamesToShow = Math.min(gamesPerPage, remainingGames);
+      const gamesInfo = document.createElement("div");
+      gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${data.games?.game_count || 0}</p>`;
 
-        for (let i = displayedGames; i < displayedGames + gamesToShow; i++) {
+      if (data.games?.game_count > 0) {
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "Ведіть назву гри.";
+        searchInput.classList.add("search-input");
+
+        const gamesList = document.createElement("div");
+        gamesList.classList.add("games-grid");
+
+        let displayedGames = 0;
+        const gamesPerPage = 100;
+        let filteredGames = [...data.games.games];
+
+        function loadMoreGames() {
+          const remainingGames = filteredGames.length - displayedGames;
+          const gamesToShow = Math.min(gamesPerPage, remainingGames);
+
+          for (let i = displayedGames; i < displayedGames + gamesToShow; i++) {
             if (!filteredGames[i]) break;
             const game = filteredGames[i];
+
             const gameItem = document.createElement("div");
-            gameItem.style.textAlign = "center";
-            gameItem.style.width = '100px';
-            gameItem.style.height = '180px';
+            gameItem.classList.add("game-item");
 
             const playtimeFormatted = formatPlaytime(game.playtime_forever);
             const imgSrc = game.img_icon_url
-                ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
-                : "https://via.placeholder.com/50";
+              ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
+              : "https://via.placeholder.com/50";
 
             gameItem.innerHTML = `
-                <img src="${imgSrc}" alt="Game Icon" width="50" height="50">
-                <br>${game.name || "Unknown Game"}<br>
-                <p>${playtimeFormatted}</p>
+              <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
+              ${game.name || "Unknown Game"}<br>
+              <p>${playtimeFormatted}</p>
             `;
+
             gamesList.appendChild(gameItem);
-        }
+          }
 
-        displayedGames += gamesToShow;
-        if (displayedGames >= filteredGames.length) {
+          displayedGames += gamesToShow;
+          if (displayedGames >= filteredGames.length) {
             moreGamesBtn.style.display = "none";
+          }
         }
-    }
 
-    const moreGamesBtn = document.createElement("button");
-    moreGamesBtn.textContent = "More Games";
-    Object.assign(moreGamesBtn.style, {
-        padding: "10px 20px",
-        marginTop: "10px",
-        backgroundColor: "#007bff",
-        color: "white",
-        border: "none",
-        borderRadius: "5px",
-        cursor: "pointer",
-        margin: '0 auto'
-    });
-    moreGamesBtn.addEventListener("mouseenter", () => moreGamesBtn.style.backgroundColor = "#0056b3");
-    moreGamesBtn.addEventListener("mouseleave", () => moreGamesBtn.style.backgroundColor = "#007bff");
-    moreGamesBtn.addEventListener("click", loadMoreGames);
+        const moreGamesBtn = document.createElement("button");
+        moreGamesBtn.textContent = "More Games";
+        moreGamesBtn.classList.add("more-games-btn");
+        moreGamesBtn.addEventListener("click", loadMoreGames);
 
-    // 🔍 Пошук
-    searchInput.addEventListener("input", () => {
-        const query = searchInput.value.toLowerCase();
-        filteredGames = data.games.games.filter(game =>
+        searchInput.addEventListener("input", () => {
+          const query = searchInput.value.toLowerCase();
+          filteredGames = data.games.games.filter(game =>
             game.name.toLowerCase().includes(query)
+          );
+          displayedGames = 0;
+          gamesList.innerHTML = "";
+          moreGamesBtn.style.display = filteredGames.length > 0 ? "block" : "none";
+          loadMoreGames();
+        });
+
+        const topGame = data.games.games.reduce((max, game) =>
+          game.playtime_forever > max.playtime_forever ? game : max,
+          data.games.games[0]
         );
-        displayedGames = 0;
-        gamesList.innerHTML = "";
-        moreGamesBtn.style.display = filteredGames.length > 0 ? "block" : "none";
+
+        const topGameDiv = document.createElement("div");
+        topGameDiv.classList.add("top-game");
+
+        const topGameImg = topGame.img_icon_url
+          ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${topGame.appid}/${topGame.img_icon_url}.jpg`
+          : "https://placehold.co/50x50";
+
+        topGameDiv.innerHTML = `
+          <h4>Найбільше часу проведено у:</h4>
+          <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
+          <strong>${topGame.name}</strong><br>
+          <p>${formatPlaytime(topGame.playtime_forever)}</p>
+        `;
+
+        const buttonWrapper = document.createElement("div");
+        buttonWrapper.classList.add("centered");
+        buttonWrapper.appendChild(moreGamesBtn);
+
+        gamesInfo.appendChild(topGameDiv);
+        gamesInfo.appendChild(searchInput);
+        gamesInfo.appendChild(gamesList);
+        gamesInfo.appendChild(buttonWrapper);
         loadMoreGames();
-    });
+      }
 
-    const topGame = data.games.games.reduce((max, game) => {
-    return (game.playtime_forever > max.playtime_forever) ? game : max;
-}, data.games.games[0]);
+      resultDiv.appendChild(userInfo);
+      resultDiv.appendChild(friendsInfo);
+      resultDiv.appendChild(gamesInfo);
 
-const topGameDiv = document.createElement("div");
-topGameDiv.style.marginBottom = "20px";
-topGameDiv.style.textAlign = "center";
-
-const topGameImg = topGame.img_icon_url
-    ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${topGame.appid}/${topGame.img_icon_url}.jpg`
-    : "https://placehold.co/50x50";
-
-topGameDiv.innerHTML = `
-    <h4> Найбільше часу проведено у:</h4>
-    <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
-    <strong>${topGame.name}</strong><br>
-    <p>${formatPlaytime(topGame.playtime_forever)}</p>
-`;
-
-gamesInfo.appendChild(topGameDiv);
-
-    gamesInfo.appendChild(searchInput);
-    gamesInfo.appendChild(gamesList);
-   const buttonWrapper = document.createElement("div");
-   buttonWrapper.style.textAlign = "center";
-   buttonWrapper.appendChild(moreGamesBtn);
-
-   gamesInfo.appendChild(buttonWrapper);
-    loadMoreGames();
-           }
-
-           resultDiv.appendChild(userInfo);
-           resultDiv.appendChild(friendsInfo);
-           resultDiv.appendChild(gamesInfo);
-           
-       } catch (error) {
-         Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Акаунт приватний або ви не ввели свій Steam ID",
-            footer: ''
-          });
-       }
-   });
+    } catch (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Oops...",
+        text: "Акаунт приватний або ви не ввели свій Steam ID",
+        footer: ''
+      });
+    }
+  });
 });
+

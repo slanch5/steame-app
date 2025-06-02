@@ -89,3 +89,113 @@ input::placeholder{
    height: 50px;
   
 }
+
+.search-input {
+  width: 50%;
+  margin-bottom: 20px;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 15px;
+}
+
+.more-games-btn {
+  padding: 10px 20px;
+  margin-top: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.more-games-btn:hover {
+  background-color: #0056b3;
+}
+
+.centered {
+  text-align: center;
+}
+
+.friend-item,
+.game-item {
+  text-align: center;
+  width: 100px;
+  height: 180px;
+}
+
+.top-game {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeSlideIn 0.6s ease forwards;
+}
+
+#submitBtn,
+.more-games-btn {
+  transition: transform 0.1s ease, background-color 0.3s;
+}
+
+#submitBtn:active,
+.more-games-btn:active {
+  transform: scale(0.97);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.img__user,
+.friend-item img,
+.game-item img,
+.top-game img {
+  animation: popIn 0.4s ease-in;
+}
+
+.friend-item img,
+.game-item img,
+.top-game img,
+.img__user {
+  transition: transform 0.3s ease;
+}
+
+.friend-item img:hover,
+.game-item img:hover,
+.top-game img:hover,
+.img__user:hover {
+  transform: scale(1.1);
+}
+
+input {
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  outline: 2px solid rgb(42, 167, 49);
+ 
+}

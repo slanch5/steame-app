@@ -197,12 +197,20 @@ document.addEventListener("DOMContentLoaded", function () {
         resultDiv.appendChild(friendsInfo);
         resultDiv.appendChild(gamesInfo);
       } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Акаунт приватний або ви не ввели свій Steam ID",
-          footer: "",
-        });
+        console.error("Fetch error:", error);
+
+        // Обробка типової CORS або мережевої помилки
+        if (
+          error instanceof TypeError &&
+          error.message.includes("Failed to fetch")
+        ) {
+          Swal.fire({
+            icon: "error",
+            title: "Oops...",
+            text: "Помилка запиту",
+            footer: "",
+          });
+        }
       }
     });
 });

@@ -13,6 +13,13 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      const loader = document.querySelector(".loader");
+      loader.classList.remove("loader--hidden");
+
+      function hideLoader() {
+        loader.classList.add("loader--hidden");
+      }
+
       function formatPlaytime(minutes) {
         const hours = Math.floor(minutes / 60);
         const remainingMinutes = minutes % 60;
@@ -23,8 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const response = await fetch(`http://localhost:8000/user/${steamId}`);
         if (!response.ok) throw new Error("Failed to fetch data");
         const data = await response.json();
-
         console.log(data);
+
+        hideLoader();
 
         Swal.fire({
           title: "Дані отримано",
@@ -37,16 +45,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const userInfo = document.createElement("div");
         userInfo.classList.add("userinfo");
-
         userInfo.innerHTML = `
-  <h3>User Info</h3>
-  <a href="${data?.user.player.profileurl || "#"}" target="_blank">
-    <img src="${
-      data?.user.player.avatar || "https://via.placeholder.com/50"
-    }" class="img__user">
-  </a>
-  <p><strong>Name:</strong> ${data?.user.player.personaname || "N/A"}</p>
-`;
+          <h3>User Info</h3>
+          <a href="${data?.user.player.profileurl || "#"}" target="_blank">
+            <img src="${
+              data?.user.player.avatar || "https://via.placeholder.com/50"
+            }" class="img__user">
+          </a>
+          <p><strong>Name:</strong> ${
+            data?.user.player.personaname || "N/A"
+          }</p>
+        `;
 
         const friendsInfo = document.createElement("div");
         friendsInfo.classList.add("friendsInfo");
@@ -62,13 +71,13 @@ document.addEventListener("DOMContentLoaded", function () {
             const friendItem = document.createElement("div");
             friendItem.classList.add("friend-item", "fade-in");
             friendItem.innerHTML = `
-            <img src="${
-              friend.avatar || "https://via.placeholder.com/50"
-            }" alt="Avatar" width="50" height="50"><br>
-            <a href="https://steamcommunity.com/profiles/${
-              friend.steamid
-            }" target="_blank">${friend.personaname || "Unknown"}</a>
-          `;
+              <img src="${
+                friend.avatar || "https://via.placeholder.com/50"
+              }" alt="Avatar" width="50" height="50"><br>
+              <a href="https://steamcommunity.com/profiles/${
+                friend.steamid
+              }" target="_blank">${friend.personaname || "Unknown"}</a>
+            `;
             friendsList.appendChild(friendItem);
           });
 
@@ -107,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
               const game = filteredGames[i];
 
               const gameItem = document.createElement("a");
-              gameItem.href = `https://store.steampowered.com/agecheck/app/${game.appid}/ `;
+              gameItem.href = `https://store.steampowered.com/agecheck/app/${game.appid}/`;
               gameItem.target = "_blank";
               gameItem.classList.add("game-item");
 
@@ -117,10 +126,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 : "https://via.placeholder.com/50";
 
               gameItem.innerHTML = `
-              <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
-              ${game.name || "Unknown Game"}<br>
-              <p>${playtimeFormatted}</p>
-            `;
+                <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
+                ${game.name || "Unknown Game"}<br>
+                <p>${playtimeFormatted}</p>
+              `;
 
               gamesList.appendChild(gameItem);
             }
@@ -145,7 +154,6 @@ document.addEventListener("DOMContentLoaded", function () {
             displayedGames = 0;
             gamesList.innerHTML = "";
 
-            // Видаляємо попередній блок "Game not found", якщо був
             const existingNotFound = document.getElementById("notFoundMsg");
             if (existingNotFound) {
               existingNotFound.remove();
@@ -155,7 +163,7 @@ document.addEventListener("DOMContentLoaded", function () {
               const notFound = document.createElement("div");
               notFound.id = "notFoundMsg";
               notFound.textContent = "Game not found";
-              notFound.classList.add("not-found-message"); // За бажанням — додай стиль в CSS
+              notFound.classList.add("not-found-message");
               gamesList.appendChild(notFound);
               moreGamesBtn.style.display = "none";
             } else {
@@ -178,11 +186,11 @@ document.addEventListener("DOMContentLoaded", function () {
             : "https://placehold.co/50x50";
 
           topGameDiv.innerHTML = `
-          <h4>Найбільше часу проведено у:</h4>
-          <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
-          <strong>${topGame.name}</strong><br>
-          <p>${formatPlaytime(topGame.playtime_forever)}</p>
-        `;
+            <h4>Найбільше часу проведено у:</h4>
+            <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
+            <strong>${topGame.name}</strong><br>
+            <p>${formatPlaytime(topGame.playtime_forever)}</p>
+          `;
 
           const buttonWrapper = document.createElement("div");
           buttonWrapper.classList.add("centered");
@@ -200,8 +208,8 @@ document.addEventListener("DOMContentLoaded", function () {
         resultDiv.appendChild(gamesInfo);
       } catch (error) {
         console.error("Fetch error:", error);
+        hideLoader();
 
-        // Обробка типової CORS або мережевої помилки
         if (
           error instanceof TypeError &&
           error.message.includes("Failed to fetch")

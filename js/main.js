@@ -106,7 +106,9 @@ document.addEventListener("DOMContentLoaded", function () {
               if (!filteredGames[i]) break;
               const game = filteredGames[i];
 
-              const gameItem = document.createElement("div");
+              const gameItem = document.createElement("a");
+              gameItem.href = `https://store.steampowered.com/agecheck/app/${game.appid}/ `;
+              gameItem.target = "_blank";
               gameItem.classList.add("game-item");
 
               const playtimeFormatted = formatPlaytime(game.playtime_forever);

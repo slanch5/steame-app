@@ -1,8 +1,25 @@
 document.addEventListener("DOMContentLoaded", function () {
+  const loader = document.querySelector(".loader");
+
+  function hideLoader() {
+    loader.classList.add("loader--hidden");
+  }
+
+  function showLoader() {
+    loader.classList.remove("loader--hidden");
+  }
+
+  function formatPlaytime(minutes) {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    return `${hours}h ${remainingMinutes}m`;
+  }
+
   document
     .getElementById("submitBtn")
     .addEventListener("click", async function () {
-      const steamId = document.getElementById("steamIdInput").value;
+      const steamId = document.getElementById("steamIdInput").value.trim();
+
       if (!steamId) {
         Swal.fire({
           icon: "error",
@@ -13,26 +30,24 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      const loader = document.querySelector(".loader");
-      loader.classList.remove("loader--hidden");
-
-      function hideLoader() {
-        loader.classList.add("loader--hidden");
-      }
-
-      function formatPlaytime(minutes) {
-        const hours = Math.floor(minutes / 60);
-        const remainingMinutes = minutes % 60;
-        return `${hours}h ${remainingMinutes}m`;
-      }
+      showLoader();
 
       try {
         const response = await fetch(`http://localhost:8000/user/${steamId}`);
-        if (!response.ok) throw new Error("Failed to fetch data");
         const data = await response.json();
         console.log(data);
+        if (!response.ok) throw new Error("Failed to fetch data");
 
         hideLoader();
+
+        if (!data?.user?.player) {
+          Swal.fire({
+            icon: "error",
+            title: "Помилка",
+            text: "Неможливо отримати дані користувача",
+          });
+          return;
+        }
 
         Swal.fire({
           title: "Дані отримано",
@@ -43,20 +58,20 @@ document.addEventListener("DOMContentLoaded", function () {
         const resultDiv = document.getElementById("result");
         resultDiv.innerHTML = "";
 
+        // --- USER INFO ---
         const userInfo = document.createElement("div");
         userInfo.classList.add("userinfo");
         userInfo.innerHTML = `
-          <h3>User Info</h3>
-          <a href="${data?.user.player.profileurl || "#"}" target="_blank">
-            <img src="${
-              data?.user.player.avatar || "https://via.placeholder.com/50"
-            }" class="img__user">
-          </a>
-          <p><strong>Name:</strong> ${
-            data?.user.player.personaname || "N/A"
-          }</p>
-        `;
+        <h3>User Info</h3>
+        <a href="${data.user.player.profileurl || "#"}" target="_blank">
+          <img src="${
+            data.user.player.avatar || "https://via.placeholder.com/50"
+          }" class="img__user">
+        </a>
+        <p><strong>Name:</strong> ${data.user.player.personaname || "N/A"}</p>
+      `;
 
+        // --- FRIENDS INFO ---
         const friendsInfo = document.createElement("div");
         friendsInfo.classList.add("friendsInfo");
         friendsInfo.innerHTML = `<h3>Friends</h3><p>Total: ${
@@ -71,19 +86,22 @@ document.addEventListener("DOMContentLoaded", function () {
             const friendItem = document.createElement("div");
             friendItem.classList.add("friend-item", "fade-in");
             friendItem.innerHTML = `
-              <img src="${
-                friend.avatar || "https://via.placeholder.com/50"
-              }" alt="Avatar" width="50" height="50"><br>
-              <a href="https://steamcommunity.com/profiles/${
-                friend.steamid
-              }" target="_blank">${friend.personaname || "Unknown"}</a>
-            `;
+            <img src="${
+              friend.avatar || "https://via.placeholder.com/50"
+            }" alt="Avatar" width="50" height="50"><br>
+            <a href="https://steamcommunity.com/profiles/${
+              friend.steamid
+            }" target="_blank">
+              ${friend.personaname || "Unknown"}
+            </a>
+          `;
             friendsList.appendChild(friendItem);
           });
 
           friendsInfo.appendChild(friendsList);
         }
 
+        // --- GAMES INFO ---
         const gamesInfo = document.createElement("div");
         gamesInfo.classList.add("gamesInfo");
         gamesInfo.innerHTML = `<h3>Games</h3><p>Total: ${
@@ -99,9 +117,19 @@ document.addEventListener("DOMContentLoaded", function () {
           const gamesList = document.createElement("div");
           gamesList.classList.add("games-grid");
 
+          const moreGamesBtn = document.createElement("button");
+          moreGamesBtn.textContent = "More Games";
+          moreGamesBtn.classList.add("more-games-btn");
+
           let displayedGames = 0;
           const gamesPerPage = 100;
           let filteredGames = [...data.games.games];
+
+          function renderGames() {
+            gamesList.innerHTML = "";
+            displayedGames = 0;
+            loadMoreGames();
+          }
 
           function loadMoreGames() {
             const remainingGames = filteredGames.length - displayedGames;
@@ -112,8 +140,8 @@ document.addEventListener("DOMContentLoaded", function () {
               i < displayedGames + gamesToShow;
               i++
             ) {
-              if (!filteredGames[i]) break;
               const game = filteredGames[i];
+              if (!game) break;
 
               const gameItem = document.createElement("a");
               gameItem.href = `https://store.steampowered.com/agecheck/app/${game.appid}/`;
@@ -126,24 +154,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 : "https://via.placeholder.com/50";
 
               gameItem.innerHTML = `
-                <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
-                ${game.name || "Unknown Game"}<br>
-                <p>${playtimeFormatted}</p>
-              `;
+              <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
+              ${game.name || "Unknown Game"}<br>
+              <p>${playtimeFormatted}</p>
+            `;
 
               gamesList.appendChild(gameItem);
             }
 
             displayedGames += gamesToShow;
-            if (displayedGames >= filteredGames.length) {
-              moreGamesBtn.style.display = "none";
-            }
+            moreGamesBtn.style.display =
+              displayedGames >= filteredGames.length ? "none" : "block";
           }
-
-          const moreGamesBtn = document.createElement("button");
-          moreGamesBtn.textContent = "More Games";
-          moreGamesBtn.classList.add("more-games-btn");
-          moreGamesBtn.addEventListener("click", loadMoreGames);
 
           searchInput.addEventListener("input", () => {
             const query = searchInput.value.toLowerCase();
@@ -151,26 +173,18 @@ document.addEventListener("DOMContentLoaded", function () {
               game.name.toLowerCase().includes(query)
             );
 
-            displayedGames = 0;
-            gamesList.innerHTML = "";
-
             const existingNotFound = document.getElementById("notFoundMsg");
-            if (existingNotFound) {
-              existingNotFound.remove();
-            }
+            if (existingNotFound) existingNotFound.remove();
 
             if (filteredGames.length === 0) {
-              const notFound = document.createElement("div");
-              notFound.id = "notFoundMsg";
-              notFound.textContent = "Game not found";
-              notFound.classList.add("not-found-message");
-              gamesList.appendChild(notFound);
+              gamesList.innerHTML = `<div id="notFoundMsg" class="not-found-message">Game not found</div>`;
               moreGamesBtn.style.display = "none";
             } else {
-              moreGamesBtn.style.display = "block";
-              loadMoreGames();
+              renderGames();
             }
           });
+
+          moreGamesBtn.addEventListener("click", loadMoreGames);
 
           const topGame = data.games.games.reduce(
             (max, game) =>
@@ -178,19 +192,18 @@ document.addEventListener("DOMContentLoaded", function () {
             data.games.games[0]
           );
 
-          const topGameDiv = document.createElement("div");
-          topGameDiv.classList.add("top-game");
-
           const topGameImg = topGame.img_icon_url
             ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${topGame.appid}/${topGame.img_icon_url}.jpg`
             : "https://placehold.co/50x50";
 
+          const topGameDiv = document.createElement("div");
+          topGameDiv.classList.add("top-game");
           topGameDiv.innerHTML = `
-            <h4>Найбільше часу проведено у:</h4>
-            <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
-            <strong>${topGame.name}</strong><br>
-            <p>${formatPlaytime(topGame.playtime_forever)}</p>
-          `;
+          <h4>Найбільше часу проведено у:</h4>
+          <img src="${topGameImg}" alt="Top Game Icon" width="50" height="50"><br>
+          <strong>${topGame.name}</strong><br>
+          <p>${formatPlaytime(topGame.playtime_forever)}</p>
+        `;
 
           const buttonWrapper = document.createElement("div");
           buttonWrapper.classList.add("centered");
@@ -200,7 +213,8 @@ document.addEventListener("DOMContentLoaded", function () {
           gamesInfo.appendChild(searchInput);
           gamesInfo.appendChild(gamesList);
           gamesInfo.appendChild(buttonWrapper);
-          loadMoreGames();
+
+          renderGames();
         }
 
         resultDiv.appendChild(userInfo);
@@ -210,17 +224,12 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Fetch error:", error);
         hideLoader();
 
-        if (
-          error instanceof TypeError &&
-          error.message.includes("Failed to fetch")
-        ) {
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Помилка запиту",
-            footer: "",
-          });
-        }
+        Swal.fire({
+          icon: "error",
+          title: "Oops...",
+          text: "Помилка запиту або дані недоступні",
+          footer: "",
+        });
       }
     });
 });

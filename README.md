@@ -2,7 +2,5 @@
 Steame user info
 
 ## Description 
-Steame user info show you information about steame user acount.
-You will get information about game and friends
-playtime each games like 1 h 45 m
+Steame User Info displays information about a Steam user's account, including their games, friends, and how much time they've spent playing each game (e.g., 1h 45m).
 

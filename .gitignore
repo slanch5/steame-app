@@ -1,0 +1,4 @@
+.env
+.vscode
+.idea
+test_main.http

@@ -1,0 +1,277 @@
+@import url(https://fonts.googleapis.com/css?family=Inter:100,200,300,regular,500,600,700,800,900);
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+  background: linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #171a21 100%);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul {
+  list-style: none;
+}
+
+button {
+  background-color: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1220px;
+  padding: 0 10px;
+  margin: 0 auto;
+}
+
+.st {
+  text-align: center;
+}
+
+.st__title {
+  font-size: 28px;
+  text-transform: uppercase;
+  font-weight: 600;
+  background-color: rgb(53, 53, 171);
+  color: #fff;
+  width: fit-content;
+  margin: 0 auto;
+  padding: 15px 25px;
+  border-radius: 20px;
+  margin-bottom: 50px;
+  margin-top: 20px;
+}
+
+#submitBtn {
+  margin-left: 10px;
+  background-color: rgb(53, 53, 171);
+  padding: 10px 20px;
+  color: #fff;
+  text-transform: uppercase;
+  border-radius: 15px;
+}
+
+input {
+  padding: 10px 20px;
+  margin-bottom: 20px;
+}
+
+input:focus {
+  outline: 2px solid rgb(42, 167, 49);
+}
+
+input::placeholder {
+  font-family: "Inter", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.search-input {
+  width: 50%;
+  margin-bottom: 20px;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  place-items: center;
+}
+
+.more-games-btn {
+  padding: 10px 20px;
+  margin-top: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0 auto;
+  margin-top: 20px;
+}
+
+.more-games-btn:hover {
+  background-color: #0056b3;
+}
+
+.centered {
+  text-align: center;
+}
+.userinfo {
+  background: linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #171a21 100%);
+  color: #fff;
+  width: 180px;
+  padding: 30px;
+  margin: 0 auto;
+  transition: box-shadow 0.3s ease;
+  &:hover {
+    box-shadow: 0 0 60px rgba(55, 172, 140, 0.7);
+  }
+}
+.img__user {
+  width: 50px;
+}
+
+.friendsInfo {
+  color: #fff;
+}
+
+.friend-item,
+.game-item {
+  text-align: center;
+  width: 180px;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #171a21 100%);
+  backdrop-filter: blur(5px);
+
+  transition: box-shadow 0.3s ease-in;
+  &:hover {
+    box-shadow: 0 0 60px rgba(55, 172, 140, 0.7);
+  }
+}
+
+.gamesInfo {
+  color: #fff;
+}
+
+.top-game {
+  margin-bottom: 20px;
+  text-align: center;
+  color: #fff;
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeSlideIn 0.6s ease forwards;
+}
+
+#submitBtn,
+.more-games-btn {
+  transition: transform 0.1s ease, background-color 0.3s;
+}
+
+#submitBtn:active,
+.more-games-btn:active {
+  transform: scale(0.97);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.img__user,
+.friend-item img,
+.game-item img,
+.top-game img {
+  animation: popIn 0.4s ease-in;
+}
+
+.friend-item img,
+.game-item img,
+.top-game img,
+.img__user {
+  transition: transform 0.3s ease;
+}
+
+.friend-item img:hover,
+.game-item img:hover,
+.top-game img:hover,
+.img__user:hover {
+  transform: scale(1.1);
+}
+
+input {
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  outline: 2px solid rgb(42, 167, 49);
+}
+#notFoundMsg {
+  grid-column: 1 / -1; /* зайняти всю ширину сітки */
+  justify-self: center; /* по горизонталі */
+  text-align: center;
+  color: red;
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333333;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 5;
+}
+
+.loader--hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader::after {
+  content: "";
+  width: 75px;
+  height: 75px;
+  border: 15px solid #fff;
+  border-top-color: #21429c;
+  border-radius: 50%;
+  animation: loading 0.75s linear infinite;
+}
+
+@keyframes loading {
+  from {
+    transform: rotate(0turn);
+  }
+  to {
+    transform: rotate(1turn);
+  }
+}

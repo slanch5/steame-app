@@ -15,8 +15,7 @@ from urllib.parse import unquote
 app = FastAPI()
 
 # Get the parent directory path
-BASE_DIR = Path(__file__).parent.parent
-
+BASE_DIR = Path(__file__).resolve().parent.parent
 # Mount static files with correct paths
 app.mount("/css", StaticFiles(directory=str(BASE_DIR / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(BASE_DIR / "js")), name="js")

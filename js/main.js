@@ -1,12 +1,23 @@
 document.addEventListener("DOMContentLoaded", function () {
   const loader = document.querySelector(".loader");
+  const steamInput = document.getElementById("steamIdInput");
+  const clearBtn = document.getElementById("clearBtn");
+
+  if (!steamInput || !clearBtn) {
+    console.error("Steam input або clear button не знайдені");
+    return;
+  }
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
+    if (steamInput.value.length > 0) {
+      clearBtn.style.display = "block";
+    }
   }
 
   function showLoader() {
     loader.classList.remove("loader--hidden");
+    clearBtn.style.display = "none";
   }
 
   function formatPlaytime(minutes) {
@@ -232,4 +243,21 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       }
     });
+
+  // Функціональність хрестика очищення
+  steamInput.addEventListener("input", function () {
+    console.log("Input event triggered, value length:", this.value.length); // Для дебагу
+    if (this.value.length > 0) {
+      clearBtn.style.display = "block";
+    } else {
+      clearBtn.style.display = "none";
+    }
+  });
+
+  clearBtn.addEventListener("click", function () {
+    console.log("Clear button clicked"); // Для дебагу
+    steamInput.value = "";
+    clearBtn.style.display = "none";
+    steamInput.focus();
+  });
 });

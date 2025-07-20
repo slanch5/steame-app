@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/css/index.css" />
+    <link rel="stylesheet" href="/css/index.css?v=1.1" />
     <link
       rel="shortcut icon"
       href="/icon/icons8-steam-ios-17-filled-32.png"
@@ -17,11 +17,14 @@
       <h1 class="st__title">Steam information user</h1>
 
       <div class="st">
-        <input
-          id="steamIdInput"
-          type="text"
-          placeholder="Paste your Steam account link"
-        />
+        <div class="input-wrapper">
+          <input
+            id="steamIdInput"
+            type="text"
+            placeholder="Paste your Steam account link"
+          />
+          <span class="clear-btn" id="clearBtn">×</span>
+        </div>
         <button id="submitBtn">Submit</button>
 
         <div id="result"></div>

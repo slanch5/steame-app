@@ -59,7 +59,7 @@ button {
 
 #submitBtn {
   margin-left: 10px;
-  background-color: #333333;
+  background-color: rgb(6, 6, 39);
   padding: 10px 20px;
   color: #fff;
   text-transform: uppercase;
@@ -275,43 +275,4 @@ input:focus {
   to {
     transform: rotate(1turn);
   }
-}
-
-.input-wrapper {
-  position: relative;
-  display: inline-block;
-  width: 30%;
-}
-
-.clear-btn {
-  position: absolute;
-  right: 15px;
-  top: 13px;
-  cursor: pointer;
-  font-size: 18px;
-  color: #999;
-  display: none;
-  user-select: none;
-  z-index: 10;
-  background: white;
-  width: 20px;
-  height: 20px;
-  text-align: center;
-  line-height: 20px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.clear-btn:hover {
-  color: #fff;
-  background: #333;
-}
-
-.input-wrapper input {
-  width: 100%;
-  padding-right: 40px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
 }

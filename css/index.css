@@ -40,7 +40,9 @@ button {
 }
 
 .st {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .st__title {

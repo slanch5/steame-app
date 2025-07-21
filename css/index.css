@@ -41,8 +41,15 @@ button {
 
 .st {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
+  gap: 10px;
+}
+
+.clearbtn {
+  margin-top: -10px;
+  background-color: #007bff;
+  padding: 10px 20px;
 }
 
 .st__title {
@@ -71,11 +78,15 @@ button {
 input {
   padding: 15px 20px;
   margin-bottom: 20px;
-  width: 30%;
+  width: 70%;
 }
 
 input:focus {
   outline: 2px solid rgb(42, 167, 49);
+}
+#result {
+  margin: 0 auto;
+  text-align: center;
 }
 
 input::placeholder {
@@ -276,5 +287,19 @@ input:focus {
   }
   to {
     transform: rotate(1turn);
+  }
+}
+
+@media (max-width: 780px) {
+  .st {
+    flex-direction: column;
+    row-gap: 20px;
+  }
+
+  input {
+    width: 100%;
+  }
+  .clearbtn {
+    order: 1;
   }
 }

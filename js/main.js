@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   const loader = document.querySelector(".loader");
   const steamInput = document.getElementById("steamIdInput");
+  const clearbtn = document.querySelector(".clearbtn");
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -9,6 +10,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function showLoader() {
     loader.classList.remove("loader--hidden");
   }
+
+  clearbtn.addEventListener("click", () => {
+    steamInput.value = "";
+  });
 
   function formatPlaytime(minutes) {
     const hours = Math.floor(minutes / 60);

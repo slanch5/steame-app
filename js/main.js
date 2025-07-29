@@ -41,17 +41,17 @@ document.addEventListener("DOMContentLoaded", function () {
       try {
         const response = await fetch(`http://localhost:8000/user/${steamId}`);
         const data = await response.json();
-        console.log(data);
-        if (!response.ok) throw new Error("Failed to fetch data");
-
         hideLoader();
-
-        if (!data?.user?.player) {
-          Swal.fire({
-            icon: "error",
-            title: "Помилка",
-            text: "Неможливо отримати дані користувача",
-          });
+        console.log(data);
+        if (!response.ok) {
+          if (response.status === 500) {
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Акаунт приватний",
+              footer: "",
+            });
+          }
           return;
         }
 
@@ -229,13 +229,6 @@ document.addEventListener("DOMContentLoaded", function () {
       } catch (error) {
         console.error("Fetch error:", error);
         hideLoader();
-
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Помилка запиту або дані недоступні",
-          footer: "",
-        });
       }
     });
 });

@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
         Swal.fire({
           icon: "error",
           title: "Oops...",
-          text: "Акаунт приватний або ви не ввели свій Steam ID",
+          text: "Ви не ввели свій Steam link",
           footer: "",
         });
         return;

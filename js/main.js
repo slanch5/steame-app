@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const loader = document.querySelector(".loader");
   const steamInput = document.getElementById("steamIdInput");
   const clearbtn = document.querySelector(".clearbtn");
+  const resultDiv = document.getElementById("result");
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -61,7 +62,6 @@ document.addEventListener("DOMContentLoaded", function () {
           icon: "success",
         });
 
-        const resultDiv = document.getElementById("result");
         resultDiv.innerHTML = "";
 
         // --- USER INFO ---

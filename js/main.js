@@ -124,7 +124,7 @@ document.addEventListener("DOMContentLoaded", function () {
           gamesList.classList.add("games-grid");
 
           const moreGamesBtn = document.createElement("button");
-          moreGamesBtn.textContent = "More Games";
+          moreGamesBtn.textContent = "Показати ще";
           moreGamesBtn.classList.add("more-games-btn");
 
           let displayedGames = 0;
@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (existingNotFound) existingNotFound.remove();
 
             if (filteredGames.length === 0) {
-              gamesList.innerHTML = `<div id="notFoundMsg" class="not-found-message">Game not found</div>`;
+              gamesList.innerHTML = `<div id="notFoundMsg" class="not-found-message">такої гри немає</div>`;
               moreGamesBtn.style.display = "none";
             } else {
               renderGames();

@@ -44,6 +44,22 @@ button {
   justify-content: center;
   align-items: center;
   gap: 10px;
+  position: relative;
+}
+
+.st:hover::after {
+  position: absolute;
+  content: "Акаунт має бути відкритим";
+  bottom: -34%; /* тултіп над інпутом */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #007bff;
+  color: #fff; /* щоб текст був читабельний */
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  font-size: 14px;
 }
 
 .clearbtn {

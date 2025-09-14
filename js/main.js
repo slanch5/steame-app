@@ -3,7 +3,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const steamInput = document.getElementById("steamIdInput");
   const clearbtn = document.querySelector(".clearbtn");
   const resultDiv = document.getElementById("result");
-  const submitBtn = document.getElementById("submitBtn"); // 🔥 додав
+  const submitBtn = document.getElementById("submitBtn");
+  const letters = document.querySelector(".letters");
+  const time = document.querySelector(".time");
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -17,10 +19,9 @@ document.addEventListener("DOMContentLoaded", function () {
     steamInput.value = "";
   });
 
-  // 🔥 Якщо юзер натиснув Enter в інпуті → клікаємо кнопку
   steamInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // блокує дефолтне відправлення форми
+      e.preventDefault();
       submitBtn.click();
     }
   });
@@ -175,6 +176,25 @@ document.addEventListener("DOMContentLoaded", function () {
           moreGamesBtn.style.display =
             displayedGames >= filteredGames.length ? "none" : "block";
         }
+
+        function sortGamesAlphabetically() {
+          filteredGames.sort((a, b) =>
+            a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+          );
+          renderGames();
+        }
+
+        function sortGamesByTime() {
+          filteredGames.sort((a, b) => b.playtime_forever - a.playtime_forever);
+          renderGames();
+        }
+
+        letters.addEventListener("click", () => {
+          sortGamesAlphabetically();
+        });
+        time.addEventListener("click", () => {
+          sortGamesByTime();
+        });
 
         searchInput.addEventListener("input", () => {
           const query = searchInput.value.toLowerCase();

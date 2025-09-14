@@ -73,7 +73,7 @@ button {
   justify-content: center;
   align-items: center;
   column-gap: 20px;
-  margin-bottom: 35px;
+  margin-bottom: 40px;
 }
 
 .st__title {
@@ -92,7 +92,31 @@ button {
 
 #submitBtn {
   margin-left: 10px;
-  /* background-color: rgb(6, 6, 39); */
+
+  padding: 10px 20px;
+  color: #fff;
+  text-transform: uppercase;
+  border-radius: 15px;
+  &:hover {
+    text-decoration: underline 2px solid #fff;
+    text-underline-offset: 8px;
+  }
+}
+.letters {
+  margin-left: 10px;
+
+  padding: 10px 20px;
+  color: #fff;
+  text-transform: uppercase;
+  border-radius: 15px;
+  &:hover {
+    text-decoration: underline 2px solid #fff;
+    text-underline-offset: 8px;
+  }
+}
+.time {
+  margin-left: 10px;
+
   padding: 10px 20px;
   color: #fff;
   text-transform: uppercase;
@@ -108,10 +132,6 @@ input {
   margin: 0 auto 20px;
   display: block;
   width: 535px;
-  text-align: center; /* текст і placeholder всередині по центру */
-}
-.box__inner {
-  text-align: center;
 }
 
 input:focus {

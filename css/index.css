@@ -40,21 +40,17 @@ button {
 }
 
 .st {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
   position: relative;
 }
 
 .st:hover::after {
   position: absolute;
   content: "Акаунт має бути відкритим";
-  bottom: -34%; /* тултіп над інпутом */
+  bottom: 113%;
   left: 50%;
   transform: translateX(-50%);
   background-color: #007bff;
-  color: #fff; /* щоб текст був читабельний */
+  color: #fff;
   padding: 6px 10px;
   border-radius: 4px;
   white-space: nowrap;
@@ -63,16 +59,28 @@ button {
 }
 
 .clearbtn {
-  margin-top: -10px;
-  background-color: #007bff;
   padding: 10px 20px;
+  color: #fff;
+  text-transform: uppercase;
+  &:hover {
+    text-decoration: underline 2px solid #fff;
+    text-underline-offset: 8px;
+  }
+}
+
+.buttons__inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  column-gap: 20px;
+  margin-bottom: 35px;
 }
 
 .st__title {
   font-size: 28px;
   text-transform: uppercase;
   font-weight: 600;
-  background-color: rgb(53, 53, 171);
+
   color: #fff;
   width: fit-content;
   margin: 0 auto;
@@ -84,17 +92,26 @@ button {
 
 #submitBtn {
   margin-left: 10px;
-  background-color: rgb(6, 6, 39);
+  /* background-color: rgb(6, 6, 39); */
   padding: 10px 20px;
   color: #fff;
   text-transform: uppercase;
   border-radius: 15px;
+  &:hover {
+    text-decoration: underline 2px solid #fff;
+    text-underline-offset: 8px;
+  }
 }
 
 input {
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  width: 70%;
+  padding: 15px;
+  margin: 0 auto 20px;
+  display: block;
+  width: 535px;
+  text-align: center; /* текст і placeholder всередині по центру */
+}
+.box__inner {
+  text-align: center;
 }
 
 input:focus {
@@ -315,7 +332,9 @@ input:focus {
   input {
     width: 100%;
   }
-  .clearbtn {
-    order: 1;
+}
+@media (max-width: 470px) {
+  .st__title {
+    font-size: 20px;
   }
 }

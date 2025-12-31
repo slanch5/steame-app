@@ -72,6 +72,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
       resultDiv.innerHTML = "";
 
+      // --- TOTAL PLAYTIME ---
+      const totalPlaytime = data.games.games.reduce(
+        (total, game) => total + game.playtime_forever,
+        0
+      );
+      const totalPlaytimeDiv = document.createElement("div");
+
+      totalPlaytimeDiv.innerHTML = `<h3 class="total-playtime">Загальний час у іграх: ${formatPlaytime(
+        totalPlaytime
+      )}</h3>`;
+      resultDiv.appendChild(totalPlaytimeDiv);
       // --- USER INFO ---
       const userInfo = document.createElement("div");
       userInfo.classList.add("userinfo");

@@ -358,3 +358,9 @@ input:focus {
     font-size: 20px;
   }
 }
+.total-playtime {
+  margin-top: 20px;
+  font-size: 20px;
+  font-weight: 500;
+  color: #fff;
+}

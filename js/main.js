@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const submitBtn = document.getElementById("submitBtn");
   const letters = document.querySelector(".letters");
   const time = document.querySelector(".time");
+  const form = document.querySelector(".st");
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -32,7 +33,8 @@ document.addEventListener("DOMContentLoaded", function () {
     return `${hours}h ${remainingMinutes}m`;
   }
 
-  submitBtn.addEventListener("click", async function () {
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
     const steamId = document.getElementById("steamIdInput").value.trim();
 
     if (!steamId) {
@@ -75,12 +77,12 @@ document.addEventListener("DOMContentLoaded", function () {
       // --- TOTAL PLAYTIME ---
       const totalPlaytime = data.games.games.reduce(
         (total, game) => total + game.playtime_forever,
-        0
+        0,
       );
       const totalPlaytimeDiv = document.createElement("div");
 
       totalPlaytimeDiv.innerHTML = `<h3 class="total-playtime">Загальний час у іграх: ${formatPlaytime(
-        totalPlaytime
+        totalPlaytime,
       )}</h3>`;
       resultDiv.appendChild(totalPlaytimeDiv);
       // --- USER INFO ---
@@ -190,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         function sortGamesAlphabetically() {
           filteredGames.sort((a, b) =>
-            a.name.localeCompare(b.name, "en", { sensitivity: "base" })
+            a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
           );
           renderGames();
         }
@@ -210,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function () {
         searchInput.addEventListener("input", () => {
           const query = searchInput.value.toLowerCase();
           filteredGames = data.games.games.filter((game) =>
-            game.name.toLowerCase().includes(query)
+            game.name.toLowerCase().includes(query),
           );
 
           const existingNotFound = document.getElementById("notFoundMsg");
@@ -229,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const topGame = data.games.games.reduce(
           (max, game) =>
             game.playtime_forever > max.playtime_forever ? game : max,
-          data.games.games[0]
+          data.games.games[0],
         );
 
         const topGameImg = topGame.img_icon_url

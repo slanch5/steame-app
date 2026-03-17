@@ -184,7 +184,7 @@ input::placeholder {
   text-align: center;
 }
 .userinfo {
-  background: linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #171a21 100%);
+  background: linear-gradient(135deg, #98b1d1 0%, #2a475e 50%, #969fb6 100%);
   color: #fff;
   width: 180px;
   padding: 30px;
@@ -211,7 +211,7 @@ input::placeholder {
   flex-direction: column;
   align-items: center;
   color: #fff;
-  background: linear-gradient(135deg, #1b2838 0%, #2a475e 50%, #171a21 100%);
+  background: linear-gradient(135deg, #98b1d1 0%, #2a475e 50%, #969fb6 100%);
   backdrop-filter: blur(5px);
 
   transition: box-shadow 0.3s ease-in;
@@ -247,7 +247,9 @@ input::placeholder {
 
 #submitBtn,
 .more-games-btn {
-  transition: transform 0.1s ease, background-color 0.3s;
+  transition:
+    transform 0.1s ease,
+    background-color 0.3s;
 }
 
 #submitBtn:active,
@@ -315,7 +317,9 @@ input:focus {
   background: #333333;
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
   z-index: 5;
 }
 

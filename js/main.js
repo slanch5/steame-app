@@ -39,10 +39,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!steamId) {
       Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Ви не ввели свій Steam link",
-        footer: "",
+        title: "steam user info",
+        text: "Ви не ввели steam link",
+        imageUrl:
+          "https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png",
+        imageWidth: 100,
+        imageHeight: 100,
+        imageAlt: "Custom image",
+        color: "#007bff",
+        confirmButtonColor: "#007bff",
+        backdrop: `rgba(255, 255, 255, 0.5)`,
       });
       return;
     }
@@ -57,19 +63,32 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!response.ok) {
         if (response.status === 500) {
           Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: "Акаунт приватний",
-            footer: "",
+            title: "steam user info",
+            text: "Акаунт приватний ",
+            imageUrl:
+              "https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png",
+            imageWidth: 100,
+            imageHeight: 100,
+            imageAlt: "Custom image",
+            color: "#007bff",
+            confirmButtonColor: "#007bff",
+            backdrop: `rgba(255, 255, 255, 0.5)`,
           });
         }
         return;
       }
 
       Swal.fire({
-        title: "Дані отримано",
-        text: "Перейдемо до вашого профілю",
-        icon: "success",
+        title: "steam user info",
+        text: "Дані отримано",
+        imageUrl:
+          "https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png",
+        imageWidth: 100,
+        imageHeight: 100,
+        imageAlt: "Custom image",
+        color: "#007bff",
+        confirmButtonColor: "#007bff",
+        backdrop: `rgba(255, 255, 255, 0.5)`,
       });
 
       resultDiv.innerHTML = "";

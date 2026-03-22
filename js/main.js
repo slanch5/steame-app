@@ -49,6 +49,8 @@ document.addEventListener("DOMContentLoaded", function () {
         color: "#007bff",
         confirmButtonColor: "#007bff",
         backdrop: `rgba(255, 255, 255, 0.5)`,
+        timer: 2000,
+        timerProgressBar: true,
       });
       return;
     }
@@ -73,6 +75,8 @@ document.addEventListener("DOMContentLoaded", function () {
             color: "#007bff",
             confirmButtonColor: "#007bff",
             backdrop: `rgba(255, 255, 255, 0.5)`,
+            timer: 2000,
+            timerProgressBar: true,
           });
         }
         return;
@@ -89,6 +93,8 @@ document.addEventListener("DOMContentLoaded", function () {
         color: "#007bff",
         confirmButtonColor: "#007bff",
         backdrop: `rgba(255, 255, 255, 0.5)`,
+        timer: 2000, // автозакриття через 3 секунди
+        timerProgressBar: true,
       });
 
       resultDiv.innerHTML = "";

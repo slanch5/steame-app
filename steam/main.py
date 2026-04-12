@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from decouple import config
 from fastapi.middleware.cors import CORSMiddleware
 from steam_web_api import Steam
-from steam.lib.steam import get_steam_id
+from steam.lib.runner import get_steam_id
 from urllib.parse import unquote
 
 app = FastAPI()
@@ -32,7 +32,7 @@ def api_status():
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

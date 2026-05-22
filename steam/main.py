@@ -113,79 +113,90 @@ async def get_user_info(url: str = Query(...)):
 
 @app.get("/prices")
 async def get_games_prices(appids: str = Query(...), cc: str = "ua"):
+    """
+    appids — через кому: 730,550,440
+    cc     — код країни (ua, us, pl)
+
+    Повертає словник {appid: price_object | None}
+
+    price_object варіанти:
+      {"status": "free"}                        — безкоштовна гра
+      {"status": "unavailable"}                 — гра є, але не продається в регіоні
+      {"status": "price", "final_formatted": "₴ 549", "initial_formatted": "₴ 549", "discount_percent": 0, ...}
+      None                                      — помилка API (мережа / 429 вичерпано)
+    """
     ids_list = [i.strip() for i in appids.split(",") if i.strip()]
     if not ids_list:
         raise HTTPException(status_code=400, detail="No appids provided")
 
-    max_retries = 3
-    retry_delay = 2
-    batch_size = 5
+    # Не більше 10 одночасних запитів до Steam Store
+    semaphore = asyncio.Semaphore(10)
 
     async def fetch_one(client: httpx.AsyncClient, appid: str) -> tuple[str, dict | None]:
-        for attempt in range(1, max_retries + 1):
-            try:
-                r = await client.get(
-                    "https://store.steampowered.com/api/appdetails",
-                    params={"appids": appid, "cc": cc, "filters": "price_overview,is_free"},
-                    timeout=10,
-                )
+        async with semaphore:
+            for attempt in range(1, 4):
+                try:
+                    r = await client.get(
+                        "https://store.steampowered.com/api/appdetails",
+                        params={
+                            "appids": appid,
+                            "cc": cc,
+                            "filters": "basic,price_overview",
+                        },
+                        timeout=15,
+                    )
 
-                # Якщо Steam повертає 429 — чекаємо і повторюємо
-                if r.status_code == 429:
-                    logging.warning(f"429 on price fetch for {appid}, attempt {attempt}/{max_retries}")
-                    if attempt < max_retries:
-                        await asyncio.sleep(retry_delay * attempt)
+                    # 429 — чекаємо і повторюємо
+                    if r.status_code == 429:
+                        logging.warning(f"429 for appid {appid}, attempt {attempt}/3")
+                        await asyncio.sleep(2 * attempt)
                         continue
-                    return appid, None
 
-                r.raise_for_status()
-                data = r.json()
+                    # Інші HTTP помилки — повертаємо None
+                    if r.status_code != 200:
+                        logging.warning(f"HTTP {r.status_code} for appid {appid}")
+                        return appid, None
 
-                # Steam може повертати ключ як рядок або число — перевіряємо обидва варіанти
-                app_data = data.get(str(appid)) or data.get(int(appid) if appid.isdigit() else appid)
+                    data = r.json()
+                    app_data = data.get(str(appid))
 
-                if not app_data or not app_data.get("success"):
-                    return appid, None
+                    # Steam повернув success: false — гра не знайдена
+                    if not app_data or not app_data.get("success"):
+                        return appid, {"status": "unavailable"}
 
-                inner = app_data.get("data", {})
+                    inner = app_data.get("data") or {}
 
-                if inner.get("is_free"):
+                    # Безкоштовна гра (CS2, TF2, Dota 2 тощо)
+                    if inner.get("is_free"):
+                        return appid, {"status": "free"}
+
+                    price = inner.get("price_overview")
+
+                    # Гра існує але не продається в цьому регіоні
+                    if price is None:
+                        return appid, {"status": "unavailable"}
+
+                    # Звичайна ціна або знижка
                     return appid, {
-                        "final_formatted": "Безкоштовно",
-                        "initial_formatted": "",
-                        "discount_percent": 0,
+                        "status": "price",
+                        "final_formatted": price.get("final_formatted", ""),
+                        "initial_formatted": price.get("initial_formatted", ""),
+                        "discount_percent": price.get("discount_percent", 0),
+                        "final": price.get("final", 0),
+                        "currency": price.get("currency", ""),
                     }
 
-                price = inner.get("price_overview")
-                if price is None:
-                    logging.info(f"No price_overview for appid {appid} (possibly not available in region '{cc}')")
+                except Exception as e:
+                    logging.warning(f"fetch_one error appid={appid} attempt={attempt}: {e}")
+                    if attempt < 3:
+                        await asyncio.sleep(1)
 
-                return appid, price
-
-            except httpx.HTTPStatusError as e:
-                logging.warning(f"HTTP error for appid {appid}: {e}")
-                if attempt < max_retries:
-                    await asyncio.sleep(retry_delay)
-                else:
-                    return appid, None
-            except Exception as e:
-                logging.warning(f"Price fetch failed for {appid}: {e}")
-                return appid, None
-
-        return appid, None
-
-    results = []
+            # Всі спроби вичерпано
+            return appid, None
 
     async with httpx.AsyncClient() as client:
-        # Розбиваємо на батчі, щоб не отримати 429 від Steam
-        for i in range(0, len(ids_list), batch_size):
-            batch = ids_list[i : i + batch_size]
-            batch_results = await asyncio.gather(*[fetch_one(client, appid) for appid in batch])
-            results.extend(batch_results)
-
-            # Пауза між батчами (крім останнього)
-            if i + batch_size < len(ids_list):
-                await asyncio.sleep(1)
+        tasks = [fetch_one(client, appid) for appid in ids_list]
+        results = await asyncio.gather(*tasks)
 
     return dict(results)
 

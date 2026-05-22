@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const priceCache = {};
 
-  // Зберігаємо поточні обробники сортування, щоб видаляти їх при новому пошуку
   let sortLettersHandler = null;
   let sortTimeHandler = null;
 
@@ -39,24 +38,62 @@ document.addEventListener("DOMContentLoaded", function () {
     return `${hours}h ${remainingMinutes}m`;
   }
 
-  // Підвантажує ціни у фоні та оновлює вже відрендерені елементи
+  function formatPrice(price) {
+    if (price === undefined) {
+      return `<span class="price__loading">...</span>`;
+    }
+
+    if (price === null) {
+      return `<span class="price__error">—</span>`;
+    }
+
+    switch (price.status) {
+      case "free":
+        return `<span class="price__free">🆓 Безкоштовно</span>`;
+
+      case "unavailable":
+        return `<span class="price__unavailable">🚫 Недоступна</span>`;
+
+      case "price":
+        if (price.discount_percent > 0) {
+          return `
+            <s class="price__original">${price.initial_formatted}</s>
+            <strong class="price__final">${price.final_formatted}</strong>
+            <span class="price__discount">-${price.discount_percent}%</span>
+          `;
+        }
+        return `<strong class="price__normal">${price.final_formatted}</strong>`;
+
+      default:
+        return `<span class="price__error">—</span>`;
+    }
+  }
+
   async function fetchPricesAndUpdate(appids) {
     const missing = appids.filter((id) => !(String(id) in priceCache));
     if (missing.length === 0) return;
 
     const chunks = [];
-    for (let i = 0; i < missing.length; i += 50) {
-      chunks.push(missing.slice(i, i + 50));
+    for (let i = 0; i < missing.length; i += 20) {
+      chunks.push(missing.slice(i, i + 20));
     }
 
     await Promise.all(
       chunks.map(async (chunk) => {
         try {
           const res = await fetch(`/prices?appids=${chunk.join(",")}&cc=ua`);
+
+          if (!res.ok) {
+            console.error(`/prices returned ${res.status}`);
+            chunk.forEach((id) => (priceCache[String(id)] = null));
+            return;
+          }
+
           const data = await res.json();
+
+          // Зберігаємо в кеш
           Object.assign(priceCache, data);
 
-          // Оновлюємо ціни на вже відрендерених картках
           chunk.forEach((id) => {
             const priceEl = document.querySelector(
               `.game-price[data-appid="${id}"]`,
@@ -71,23 +108,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       }),
     );
-  }
-
-  function formatPrice(price) {
-    if (price === undefined) {
-      return `<span class="price__loading">...</span>`;
-    }
-    if (!price) {
-      return `<span class='price__none'>-</span>`;
-    }
-    if (price.discount_percent > 0) {
-      return `
-        <s style="color:gray;font-size:11px">${price.initial_formatted}</s>
-        <strong style="color:#4caf50">${price.final_formatted}</strong>
-        <span style="color:#ff5722;font-size:11px"> -${price.discount_percent}%</span>
-      `;
-    }
-    return `<strong>${price.final_formatted}</strong>`;
   }
 
   form.addEventListener("submit", async function (e) {
@@ -243,7 +263,7 @@ document.addEventListener("DOMContentLoaded", function () {
             displayedGames + gamesToShow,
           );
 
-          // 1. Рендеримо ігри одразу — без очікування цін
+          // 1. Рендеримо картки одразу — без очікування цін
           batch.forEach((game) => {
             if (!game) return;
 
@@ -257,7 +277,7 @@ document.addEventListener("DOMContentLoaded", function () {
               ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
               : "https://via.placeholder.com/50";
 
-            // Якщо ціна вже є в кеші — показуємо, інакше "..."
+            // Якщо ціна вже є в кеші — показуємо одразу, інакше "..."
             const cachedPrice =
               String(game.appid) in priceCache
                 ? priceCache[String(game.appid)]
@@ -293,7 +313,6 @@ document.addEventListener("DOMContentLoaded", function () {
           renderGames();
         }
 
-        // Зберігаємо посилання на обробники для видалення при наступному пошуку
         sortLettersHandler = sortGamesAlphabetically;
         sortTimeHandler = sortGamesByTime;
 

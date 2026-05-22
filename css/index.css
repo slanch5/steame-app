@@ -368,3 +368,7 @@ input:focus {
   font-weight: 500;
   color: #fff;
 }
+
+.price__none {
+  color: gray;
+}

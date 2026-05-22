@@ -8,10 +8,20 @@ document.addEventListener("DOMContentLoaded", function () {
   const time = document.querySelector(".time");
   const form = document.querySelector(".st");
 
+  // Кнопки фільтрів
+  const btnFree = document.querySelector(".free");
+  const btnDiscount = document.querySelector(".discount");
+  const btnUnavailable = document.querySelector(".unavailable");
+  const btnClearFilter = document.querySelector(".clearfil");
+
   const priceCache = {};
 
   let sortLettersHandler = null;
   let sortTimeHandler = null;
+
+  let activeFilter = null;
+
+  let allGames = [];
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -42,18 +52,14 @@ document.addEventListener("DOMContentLoaded", function () {
     if (price === undefined) {
       return `<span class="price__loading">...</span>`;
     }
-
     if (price === null) {
       return `<span class="price__error">—</span>`;
     }
-
     switch (price.status) {
       case "free":
         return `<span class="price__free">🆓 Безкоштовно</span>`;
-
       case "unavailable":
         return `<span class="price__unavailable">🚫 Недоступна</span>`;
-
       case "price":
         if (price.discount_percent > 0) {
           return `
@@ -63,10 +69,39 @@ document.addEventListener("DOMContentLoaded", function () {
           `;
         }
         return `<strong class="price__normal">${price.final_formatted}</strong>`;
-
       default:
         return `<span class="price__error">—</span>`;
     }
+  }
+
+  // Повертає true якщо гра відповідає активному фільтру по ціні
+  function matchesPriceFilter(appid) {
+    if (!activeFilter) return true;
+    const price = priceCache[String(appid)];
+    if (price === undefined) return true; // ціна ще не завантажена — показуємо
+    switch (activeFilter) {
+      case "free":
+        return price?.status === "free";
+      case "discount":
+        return price?.status === "price" && price.discount_percent > 0;
+      case "unavailable":
+        return price?.status === "unavailable";
+      default:
+        return true;
+    }
+  }
+
+  // Оновлює стан активної кнопки фільтру
+  function updateFilterButtons() {
+    [btnFree, btnDiscount, btnUnavailable].forEach((btn) => {
+      if (!btn) return;
+      btn.classList.remove("active");
+    });
+    if (activeFilter === "free" && btnFree) btnFree.classList.add("active");
+    if (activeFilter === "discount" && btnDiscount)
+      btnDiscount.classList.add("active");
+    if (activeFilter === "unavailable" && btnUnavailable)
+      btnUnavailable.classList.add("active");
   }
 
   async function fetchPricesAndUpdate(appids) {
@@ -82,7 +117,6 @@ document.addEventListener("DOMContentLoaded", function () {
       chunks.map(async (chunk) => {
         try {
           const res = await fetch(`/prices?appids=${chunk.join(",")}&cc=ua`);
-
           if (!res.ok) {
             console.error(`/prices returned ${res.status}`);
             chunk.forEach((id) => (priceCache[String(id)] = null));
@@ -90,8 +124,6 @@ document.addEventListener("DOMContentLoaded", function () {
           }
 
           const data = await res.json();
-
-          // Зберігаємо в кеш
           Object.assign(priceCache, data);
 
           chunk.forEach((id) => {
@@ -101,6 +133,16 @@ document.addEventListener("DOMContentLoaded", function () {
             if (priceEl) {
               priceEl.innerHTML = formatPrice(priceCache[String(id)]);
             }
+
+            // Якщо активний фільтр — ховаємо/показуємо картку після завантаження ціни
+            if (activeFilter) {
+              const gameItem = document
+                .querySelector(`a.game-item [data-appid="${id}"]`)
+                ?.closest("a.game-item");
+              if (gameItem) {
+                gameItem.style.display = matchesPriceFilter(id) ? "" : "none";
+              }
+            }
           });
         } catch (err) {
           console.error("Price batch fetch error:", err);
@@ -109,6 +151,40 @@ document.addEventListener("DOMContentLoaded", function () {
       }),
     );
   }
+
+  // ── Обробники кнопок фільтрів ──────────────────────────────────────────────
+  function setupFilterButton(btn, filterName) {
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+      // Повторний клік — знімаємо фільтр
+      activeFilter = activeFilter === filterName ? null : filterName;
+      updateFilterButtons();
+      applyVisibilityFilter();
+    });
+  }
+
+  setupFilterButton(btnFree, "free");
+  setupFilterButton(btnDiscount, "discount");
+  setupFilterButton(btnUnavailable, "unavailable");
+
+  if (btnClearFilter) {
+    btnClearFilter.addEventListener("click", () => {
+      activeFilter = null;
+      updateFilterButtons();
+      applyVisibilityFilter();
+    });
+  }
+
+  // Показує/ховає картки відповідно до activeFilter
+  function applyVisibilityFilter() {
+    const gameItems = document.querySelectorAll("a.game-item");
+    gameItems.forEach((item) => {
+      const appid = item.querySelector(".game-price")?.dataset?.appid;
+      if (!appid) return;
+      item.style.display = matchesPriceFilter(appid) ? "" : "none";
+    });
+  }
+  // ───────────────────────────────────────────────────────────────────────────
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -132,10 +208,13 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Видаляємо старі обробники сортування перед новим пошуком
     if (sortLettersHandler)
       letters.removeEventListener("click", sortLettersHandler);
     if (sortTimeHandler) time.removeEventListener("click", sortTimeHandler);
+
+    // Скидаємо фільтр при новому пошуку
+    activeFilter = null;
+    updateFilterButtons();
 
     showLoader();
 
@@ -180,9 +259,10 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       resultDiv.innerHTML = "";
+      allGames = data.games.games;
 
       // --- TOTAL PLAYTIME ---
-      const totalPlaytime = data.games.games.reduce(
+      const totalPlaytime = allGames.reduce(
         (total, game) => total + game.playtime_forever,
         0,
       );
@@ -245,7 +325,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let displayedGames = 0;
         const gamesPerPage = 100;
-        let filteredGames = [...data.games.games];
+        let filteredGames = [...allGames];
 
         function renderGames() {
           gamesList.innerHTML = "";
@@ -263,7 +343,6 @@ document.addEventListener("DOMContentLoaded", function () {
             displayedGames + gamesToShow,
           );
 
-          // 1. Рендеримо картки одразу — без очікування цін
           batch.forEach((game) => {
             if (!game) return;
 
@@ -277,7 +356,6 @@ document.addEventListener("DOMContentLoaded", function () {
               ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
               : "https://via.placeholder.com/50";
 
-            // Якщо ціна вже є в кеші — показуємо одразу, інакше "..."
             const cachedPrice =
               String(game.appid) in priceCache
                 ? priceCache[String(game.appid)]
@@ -290,6 +368,13 @@ document.addEventListener("DOMContentLoaded", function () {
               <p class="game-price" data-appid="${game.appid}">${formatPrice(cachedPrice)}</p>
             `;
 
+            // Одразу ховаємо якщо не відповідає фільтру (ціна вже в кеші)
+            if (activeFilter && String(game.appid) in priceCache) {
+              gameItem.style.display = matchesPriceFilter(game.appid)
+                ? ""
+                : "none";
+            }
+
             gamesList.appendChild(gameItem);
           });
 
@@ -297,7 +382,6 @@ document.addEventListener("DOMContentLoaded", function () {
           moreGamesBtn.style.display =
             displayedGames >= filteredGames.length ? "none" : "block";
 
-          // 2. Підвантажуємо ціни у фоні та оновлюємо картки
           fetchPricesAndUpdate(batch.map((g) => g.appid));
         }
 
@@ -321,7 +405,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         searchInput.addEventListener("input", () => {
           const query = searchInput.value.toLowerCase();
-          filteredGames = data.games.games.filter((game) =>
+          filteredGames = allGames.filter((game) =>
             game.name.toLowerCase().includes(query),
           );
 
@@ -338,11 +422,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         moreGamesBtn.addEventListener("click", loadMoreGames);
 
-        // Топ гра за часом
-        const topGame = data.games.games.reduce(
+        const topGame = allGames.reduce(
           (max, game) =>
             game.playtime_forever > max.playtime_forever ? game : max,
-          data.games.games[0],
+          allGames[0],
         );
 
         const topGameImg = topGame.img_icon_url

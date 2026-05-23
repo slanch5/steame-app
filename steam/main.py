@@ -3,7 +3,6 @@ import asyncio
 import logging
 import httpx
 import time
-import random
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
@@ -50,9 +49,7 @@ HEADERS = {
     "Referer": "https://store.steampowered.com/",
 }
 
-WORKERS   = 2      # більше — Akamai блокує
-DELAY_MIN = 1.5    # рандомна пауза між запитами
-DELAY_MAX = 2.5
+BATCH_SIZE = 100
 
 _cooldown_until: float = 0.0
 
@@ -70,98 +67,84 @@ async def wait_cooldown() -> None:
         await asyncio.sleep(remaining)
 
 
-async def fetch_price(client: httpx.AsyncClient, appid: str, cc: str) -> dict | None:
+def parse_price(appid: str, data: dict) -> dict | None:
+    app_data = data.get(str(appid))
+
+    if not app_data or not app_data.get("success"):
+        return {"status": "unavailable"}
+
+    inner = app_data.get("data")
+
+    if not inner:
+        return {"status": "free"}
+
+    if isinstance(inner, dict) and inner.get("is_free"):
+        return {"status": "free"}
+
+    price = inner.get("price_overview") if isinstance(inner, dict) else None
+    if not price:
+        return {"status": "unavailable"}
+
+    return {
+        "status":            "price",
+        "final_formatted":   price.get("final_formatted", ""),
+        "initial_formatted": price.get("initial_formatted", ""),
+        "discount_percent":  price.get("discount_percent", 0),
+        "final":             price.get("final", 0),
+        "currency":          price.get("currency", ""),
+    }
+
+
+async def fetch_prices_batch(
+    client: httpx.AsyncClient,
+    appids: list[str],
+    cc: str,
+) -> dict[str, dict | None]:
     """
-    Прямий httpx запит до Steam Store API з обов'язковим cc= параметром.
-    Саме він повертає price_overview — бібліотека його не передавала.
+    Steam Store API accepts multiple appids in one comma-separated parameter.
+    This keeps one API request per visible batch instead of one request per game.
     """
+    ids_param = ",".join(appids)
     for attempt in range(1, 5):
         await wait_cooldown()
         try:
             r = await client.get(
                 "https://store.steampowered.com/api/appdetails",
                 params={
-                    "appids": appid,
+                    "appids": ids_param,
                     "cc": cc,           # ← ключовий параметр, без нього немає цін
-                    "filters": "price_overview,basic",
+                    "filters": "price_overview",
                 },
                 headers=HEADERS,
                 timeout=20,
             )
 
             if r.status_code == 429:
-                logging.warning(f"[429] {appid} attempt={attempt}")
+                logging.warning(f"[429] batch={len(appids)} attempt={attempt}")
                 await set_cooldown(20 * attempt)
                 continue
 
             if r.status_code == 403:
-                logging.warning(f"[403] {appid} attempt={attempt}")
+                logging.warning(f"[403] batch={len(appids)} attempt={attempt}")
                 await set_cooldown(30 * attempt)
                 continue
 
             if r.status_code != 200:
-                logging.warning(f"[{r.status_code}] {appid}")
-                return None
+                logging.warning(f"[{r.status_code}] batch={len(appids)}")
+                return {appid: None for appid in appids}
 
             data = r.json()
-            app_data = data.get(str(appid))
-
-            if not app_data or not app_data.get("success"):
-                return {"status": "unavailable"}
-
-            inner = app_data.get("data") or {}
-
-            if inner.get("is_free"):
-                return {"status": "free"}
-
-            price = inner.get("price_overview")
-            if not price:
-                return {"status": "unavailable"}
-
-            return {
-                "status":            "price",
-                "final_formatted":   price.get("final_formatted", ""),
-                "initial_formatted": price.get("initial_formatted", ""),
-                "discount_percent":  price.get("discount_percent", 0),
-                "final":             price.get("final", 0),
-                "currency":          price.get("currency", ""),
-            }
+            return {appid: parse_price(appid, data) for appid in appids}
 
         except httpx.TimeoutException:
-            logging.warning(f"[timeout] {appid} attempt={attempt}")
+            logging.warning(f"[timeout] batch={len(appids)} attempt={attempt}")
             await asyncio.sleep(3 * attempt)
         except Exception as e:
-            logging.warning(f"[error] {appid} attempt={attempt}: {e}")
+            logging.warning(f"[error] batch={len(appids)} attempt={attempt}: {e}")
             await asyncio.sleep(2)
 
-    logging.error(f"[failed] {appid} після 4 спроб")
-    return None
-
-
-async def price_worker(
-    worker_id: int,
-    queue: asyncio.Queue,
-    results: dict,
-    client: httpx.AsyncClient,
-    cc: str,
-) -> None:
-    while True:
-        appid = await queue.get()
-        if appid is None:
-            queue.task_done()
-            break
-        try:
-            price_data = await fetch_price(client, appid, cc)
-            results[appid] = price_data
-            price_server_cache[appid] = {"data": price_data, "ts": time.time()}
-            status = price_data.get("status") if price_data else "error"
-            logging.info(f"[w{worker_id}] {appid} → {status}")
-        except Exception as e:
-            logging.error(f"[w{worker_id}] unhandled {appid}: {e}")
-            results[appid] = None
-        finally:
-            queue.task_done()
-            await asyncio.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+    logging.error(f"[failed] batch={len(appids)} після 4 спроб")
+    return {appid: None for appid in appids}
 
 
 @app.get("/")
@@ -251,7 +234,8 @@ async def get_games_prices(appids: str = Query(...), cc: str = "ua"):
     now = time.time()
 
     for appid in ids_list:
-        cached = price_server_cache.get(appid)
+        cache_key = f"{cc}:{appid}"
+        cached = price_server_cache.get(cache_key)
         if cached and (now - cached["ts"]) < CACHE_TTL:
             result[appid] = cached["data"]
         else:
@@ -260,24 +244,20 @@ async def get_games_prices(appids: str = Query(...), cc: str = "ua"):
     if not to_fetch:
         return result
 
-    logging.info(f"[prices] кеш={len(result)}, черга={len(to_fetch)}, cc={cc}")
-
-    queue: asyncio.Queue = asyncio.Queue()
-    fetched: dict = {}
-
-    for appid in to_fetch:
-        await queue.put(appid)
-    for _ in range(WORKERS):
-        await queue.put(None)  # sentinels
+    logging.info(f"[prices] кеш={len(result)}, fetch={len(to_fetch)}, cc={cc}")
 
     async with httpx.AsyncClient() as client:
-        workers = [
-            asyncio.create_task(price_worker(i, queue, fetched, client, cc))
-            for i in range(WORKERS)
-        ]
-        await asyncio.gather(*workers)
+        for i in range(0, len(to_fetch), BATCH_SIZE):
+            batch = to_fetch[i : i + BATCH_SIZE]
+            fetched = await fetch_prices_batch(client, batch, cc)
+            for appid, price_data in fetched.items():
+                result[appid] = price_data
+                price_server_cache[f"{cc}:{appid}"] = {
+                    "data": price_data,
+                    "ts": time.time(),
+                }
+            logging.info(f"[prices] batch={len(batch)} done")
 
-    result.update(fetched)
     return result
 
 

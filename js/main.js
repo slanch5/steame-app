@@ -145,63 +145,59 @@ document.addEventListener("DOMContentLoaded", function () {
     if (missing.length === 0) return;
 
     const chunks = [];
-    for (let i = 0; i < missing.length; i += 20) {
-      chunks.push(missing.slice(i, i + 20));
+    for (let i = 0; i < missing.length; i += 100) {
+      chunks.push(missing.slice(i, i + 100));
     }
 
-    await Promise.all(
-      chunks.map(async (chunk) => {
-        try {
-          const res = await fetch(`/prices?appids=${chunk.join(",")}&cc=ua`);
-          if (!res.ok) {
-            chunk.forEach((id) => (priceCache[String(id)] = null));
-            return;
+    for (const chunk of chunks) {
+      try {
+        const res = await fetch(`/prices?appids=${chunk.join(",")}&cc=ua`);
+        if (!res.ok) {
+          chunk.forEach((id) => (priceCache[String(id)] = null));
+          continue;
+        }
+
+        const data = await res.json();
+        Object.assign(priceCache, data);
+        Object.entries(data).forEach(([appid, price]) => {
+          const game = allGames.find((g) => String(g.appid) === appid);
+          const name = game?.name || appid;
+          if (!price) {
+            console.log(`❌ ${name} — помилка API`);
+          } else if (price.status === "free") {
+            console.log(`🆓 ${name} — Безкоштовно`);
+          } else if (price.status === "unavailable") {
+            console.log(`🚫 ${name} — Недоступна`);
+          } else if (price.status === "price") {
+            const discount =
+              price.discount_percent > 0 ? ` (-${price.discount_percent}%)` : "";
+            console.log(`💰 ${name} — ${price.final_formatted}${discount}`);
+          }
+        });
+
+        chunk.forEach((id) => {
+          const priceEl = document.querySelector(
+            `.game-price[data-appid="${id}"]`,
+          );
+          if (priceEl) {
+            priceEl.innerHTML = formatPrice(priceCache[String(id)]);
           }
 
-          const data = await res.json();
-          Object.assign(priceCache, data);
-          Object.entries(data).forEach(([appid, price]) => {
-            const game = allGames.find((g) => String(g.appid) === appid);
-            const name = game?.name || appid;
-            if (!price) {
-              console.log(`❌ ${name} — помилка API`);
-            } else if (price.status === "free") {
-              console.log(`🆓 ${name} — Безкоштовно`);
-            } else if (price.status === "unavailable") {
-              console.log(`🚫 ${name} — Недоступна`);
-            } else if (price.status === "price") {
-              const discount =
-                price.discount_percent > 0
-                  ? ` (-${price.discount_percent}%)`
-                  : "";
-              console.log(`💰 ${name} — ${price.final_formatted}${discount}`);
+          if (activeFilter) {
+            const gameItem = priceEl?.closest("a.game-item");
+            if (gameItem) {
+              gameItem.style.display = matchesPriceFilter(id) ? "" : "none";
             }
-          });
+          }
+        });
 
-          chunk.forEach((id) => {
-            const priceEl = document.querySelector(
-              `.game-price[data-appid="${id}"]`,
-            );
-            if (priceEl) {
-              priceEl.innerHTML = formatPrice(priceCache[String(id)]);
-            }
-
-            if (activeFilter) {
-              const gameItem = priceEl?.closest("a.game-item");
-              if (gameItem) {
-                gameItem.style.display = matchesPriceFilter(id) ? "" : "none";
-              }
-            }
-          });
-
-          // Оновлюємо суму витрат після кожного батчу
-          updateTotalSpent();
-        } catch (err) {
-          console.error("Price batch fetch error:", err);
-          chunk.forEach((id) => (priceCache[String(id)] = null));
-        }
-      }),
-    );
+        // Оновлюємо суму витрат після кожного батчу
+        updateTotalSpent();
+      } catch (err) {
+        console.error("Price batch fetch error:", err);
+        chunk.forEach((id) => (priceCache[String(id)] = null));
+      }
+    }
   }
 
   function setupFilterButton(btn, filterName) {

@@ -417,3 +417,16 @@ input:focus {
 .price__none {
   color: gray;
 }
+
+.total-spent {
+  text-align: center;
+  margin: 10px 0;
+}
+.total-spent__title {
+  font-size: 1.2rem;
+  color: #fff;
+}
+.total-spent__sub {
+  color: gray;
+  font-size: 0.85rem;
+}

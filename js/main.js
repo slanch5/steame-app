@@ -8,7 +8,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const time = document.querySelector(".time");
   const form = document.querySelector(".st");
 
-  // Кнопки фільтрів
   const btnFree = document.querySelector(".free");
   const btnDiscount = document.querySelector(".discount");
   const btnUnavailable = document.querySelector(".unavailable");
@@ -18,10 +17,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let sortLettersHandler = null;
   let sortTimeHandler = null;
-
   let activeFilter = null;
-
   let allGames = [];
+  let renderGamesRef = null;
 
   function hideLoader() {
     loader.classList.add("loader--hidden");
@@ -74,11 +72,51 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Повертає true якщо гра відповідає активному фільтру по ціні
+  // ── ПІДРАХУНОК ВИТРАТ ────────────────────────────────────────────────────
+  function updateTotalSpent() {
+    const spentEl = document.getElementById("total-spent");
+    const spentCountEl = document.getElementById("total-spent-count");
+    if (!spentEl || !spentCountEl) return;
+
+    let totalKopecks = 0; // сума в мінімальних одиницях (копійки/центи)
+    let currency = "";
+    let countedGames = 0; // ігор з відомою ціною
+    let loadedGames = 0; // ігор завантажено всього
+
+    for (const game of allGames) {
+      const price = priceCache[String(game.appid)];
+      if (price === undefined) continue; // ще не завантажено
+
+      loadedGames++;
+
+      if (price?.status === "price" && price.final > 0) {
+        // price.final — ціна в копійках (Steam зберігає як ціле число)
+        totalKopecks += price.final;
+        countedGames++;
+        if (!currency) currency = price.currency || "";
+      }
+    }
+
+    // Форматуємо суму
+    const total = (totalKopecks / 100).toFixed(2);
+    const currencySymbols = { UAH: "₴", USD: "$", EUR: "€", PLN: "zł" };
+    const symbol = currencySymbols[currency] || currency;
+
+    const pct =
+      allGames.length > 0
+        ? Math.round((loadedGames / allGames.length) * 100)
+        : 0;
+
+    spentEl.textContent = countedGames > 0 ? `${symbol} ${total}` : "...";
+
+    spentCountEl.textContent = `за ${countedGames} платних ігор (завантажено ${pct}% цін)`;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function matchesPriceFilter(appid) {
     if (!activeFilter) return true;
     const price = priceCache[String(appid)];
-    if (price === undefined) return true; // ціна ще не завантажена — показуємо
+    if (price === undefined) return true;
     switch (activeFilter) {
       case "free":
         return price?.status === "free";
@@ -91,11 +129,9 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // Оновлює стан активної кнопки фільтру
   function updateFilterButtons() {
     [btnFree, btnDiscount, btnUnavailable].forEach((btn) => {
-      if (!btn) return;
-      btn.classList.remove("active");
+      if (btn) btn.classList.remove("active");
     });
     if (activeFilter === "free" && btnFree) btnFree.classList.add("active");
     if (activeFilter === "discount" && btnDiscount)
@@ -118,13 +154,29 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
           const res = await fetch(`/prices?appids=${chunk.join(",")}&cc=ua`);
           if (!res.ok) {
-            console.error(`/prices returned ${res.status}`);
             chunk.forEach((id) => (priceCache[String(id)] = null));
             return;
           }
 
           const data = await res.json();
           Object.assign(priceCache, data);
+          Object.entries(data).forEach(([appid, price]) => {
+            const game = allGames.find((g) => String(g.appid) === appid);
+            const name = game?.name || appid;
+            if (!price) {
+              console.log(`❌ ${name} — помилка API`);
+            } else if (price.status === "free") {
+              console.log(`🆓 ${name} — Безкоштовно`);
+            } else if (price.status === "unavailable") {
+              console.log(`🚫 ${name} — Недоступна`);
+            } else if (price.status === "price") {
+              const discount =
+                price.discount_percent > 0
+                  ? ` (-${price.discount_percent}%)`
+                  : "";
+              console.log(`💰 ${name} — ${price.final_formatted}${discount}`);
+            }
+          });
 
           chunk.forEach((id) => {
             const priceEl = document.querySelector(
@@ -134,16 +186,16 @@ document.addEventListener("DOMContentLoaded", function () {
               priceEl.innerHTML = formatPrice(priceCache[String(id)]);
             }
 
-            // Якщо активний фільтр — ховаємо/показуємо картку після завантаження ціни
             if (activeFilter) {
-              const gameItem = document
-                .querySelector(`a.game-item [data-appid="${id}"]`)
-                ?.closest("a.game-item");
+              const gameItem = priceEl?.closest("a.game-item");
               if (gameItem) {
                 gameItem.style.display = matchesPriceFilter(id) ? "" : "none";
               }
             }
           });
+
+          // Оновлюємо суму витрат після кожного батчу
+          updateTotalSpent();
         } catch (err) {
           console.error("Price batch fetch error:", err);
           chunk.forEach((id) => (priceCache[String(id)] = null));
@@ -152,14 +204,12 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  // ── Обробники кнопок фільтрів ──────────────────────────────────────────────
   function setupFilterButton(btn, filterName) {
     if (!btn) return;
     btn.addEventListener("click", () => {
-      // Повторний клік — знімаємо фільтр
       activeFilter = activeFilter === filterName ? null : filterName;
       updateFilterButtons();
-      applyVisibilityFilter();
+      if (renderGamesRef) renderGamesRef();
     });
   }
 
@@ -171,20 +221,9 @@ document.addEventListener("DOMContentLoaded", function () {
     btnClearFilter.addEventListener("click", () => {
       activeFilter = null;
       updateFilterButtons();
-      applyVisibilityFilter();
+      if (renderGamesRef) renderGamesRef();
     });
   }
-
-  // Показує/ховає картки відповідно до activeFilter
-  function applyVisibilityFilter() {
-    const gameItems = document.querySelectorAll("a.game-item");
-    gameItems.forEach((item) => {
-      const appid = item.querySelector(".game-price")?.dataset?.appid;
-      if (!appid) return;
-      item.style.display = matchesPriceFilter(appid) ? "" : "none";
-    });
-  }
-  // ───────────────────────────────────────────────────────────────────────────
 
   form.addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -212,15 +251,15 @@ document.addEventListener("DOMContentLoaded", function () {
       letters.removeEventListener("click", sortLettersHandler);
     if (sortTimeHandler) time.removeEventListener("click", sortTimeHandler);
 
-    // Скидаємо фільтр при новому пошуку
     activeFilter = null;
+    renderGamesRef = null;
     updateFilterButtons();
-
     showLoader();
 
     try {
       const response = await fetch(`/user?url=${encodeURIComponent(steamId)}`);
       const data = await response.json();
+      console.log(data);
       hideLoader();
 
       if (!response.ok) {
@@ -270,6 +309,17 @@ document.addEventListener("DOMContentLoaded", function () {
       totalPlaytimeDiv.innerHTML = `<h3 class="total-playtime">Загальний час у іграх: ${formatPlaytime(totalPlaytime)}</h3>`;
       resultDiv.appendChild(totalPlaytimeDiv);
 
+      // --- TOTAL SPENT ---
+      const totalSpentDiv = document.createElement("div");
+      totalSpentDiv.classList.add("total-spent");
+      totalSpentDiv.innerHTML = `
+        <h3 class="total-spent__title">💸 Витрачено на ігри:
+          <span id="total-spent">...</span>
+        </h3>
+        <p id="total-spent-count" class="total-spent__sub"></p>
+      `;
+      resultDiv.appendChild(totalSpentDiv);
+
       // --- USER INFO ---
       const userInfo = document.createElement("div");
       userInfo.classList.add("userinfo");
@@ -289,7 +339,6 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.friends?.friends?.length) {
         const friendsList = document.createElement("div");
         friendsList.classList.add("games-grid");
-
         data.friends.friends.forEach((friend) => {
           const friendItem = document.createElement("div");
           friendItem.classList.add("friend-item", "fade-in");
@@ -301,7 +350,6 @@ document.addEventListener("DOMContentLoaded", function () {
           `;
           friendsList.appendChild(friendItem);
         });
-
         friendsInfo.appendChild(friendsList);
       }
 
@@ -327,11 +375,55 @@ document.addEventListener("DOMContentLoaded", function () {
         const gamesPerPage = 100;
         let filteredGames = [...allGames];
 
+        function renderGameCard(game) {
+          const gameItem = document.createElement("a");
+          gameItem.href = `https://store.steampowered.com/app/${game.appid}/`;
+          gameItem.target = "_blank";
+          gameItem.classList.add("game-item");
+
+          const playtimeFormatted = formatPlaytime(game.playtime_forever);
+          const imgSrc = game.img_icon_url
+            ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
+            : "https://via.placeholder.com/50";
+
+          const cachedPrice =
+            String(game.appid) in priceCache
+              ? priceCache[String(game.appid)]
+              : undefined;
+
+          gameItem.innerHTML = `
+            <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
+            ${game.name || "Unknown Game"}<br>
+            <p class="playtime">${playtimeFormatted}</p>
+            <p class="game-price" data-appid="${game.appid}">${formatPrice(cachedPrice)}</p>
+          `;
+
+          if (activeFilter && String(game.appid) in priceCache) {
+            gameItem.style.display = matchesPriceFilter(game.appid)
+              ? ""
+              : "none";
+          }
+
+          return gameItem;
+        }
+
         function renderGames() {
           gamesList.innerHTML = "";
           displayedGames = 0;
-          loadMoreGames();
+
+          if (activeFilter) {
+            filteredGames.forEach((game) => {
+              if (game) gamesList.appendChild(renderGameCard(game));
+            });
+            displayedGames = filteredGames.length;
+            moreGamesBtn.style.display = "none";
+            fetchPricesAndUpdate(filteredGames.map((g) => g.appid));
+          } else {
+            loadMoreGames();
+          }
         }
+
+        renderGamesRef = renderGames;
 
         function loadMoreGames() {
           const remainingGames = filteredGames.length - displayedGames;
@@ -344,38 +436,7 @@ document.addEventListener("DOMContentLoaded", function () {
           );
 
           batch.forEach((game) => {
-            if (!game) return;
-
-            const gameItem = document.createElement("a");
-            gameItem.href = `https://store.steampowered.com/app/${game.appid}/`;
-            gameItem.target = "_blank";
-            gameItem.classList.add("game-item");
-
-            const playtimeFormatted = formatPlaytime(game.playtime_forever);
-            const imgSrc = game.img_icon_url
-              ? `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/${game.appid}/${game.img_icon_url}.jpg`
-              : "https://via.placeholder.com/50";
-
-            const cachedPrice =
-              String(game.appid) in priceCache
-                ? priceCache[String(game.appid)]
-                : undefined;
-
-            gameItem.innerHTML = `
-              <img src="${imgSrc}" alt="Game Icon" width="50" height="50"><br>
-              ${game.name || "Unknown Game"}<br>
-              <p class="playtime">${playtimeFormatted}</p>
-              <p class="game-price" data-appid="${game.appid}">${formatPrice(cachedPrice)}</p>
-            `;
-
-            // Одразу ховаємо якщо не відповідає фільтру (ціна вже в кеші)
-            if (activeFilter && String(game.appid) in priceCache) {
-              gameItem.style.display = matchesPriceFilter(game.appid)
-                ? ""
-                : "none";
-            }
-
-            gamesList.appendChild(gameItem);
+            if (game) gamesList.appendChild(renderGameCard(game));
           });
 
           displayedGames += gamesToShow;

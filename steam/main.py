@@ -2,6 +2,8 @@ import uvicorn
 import asyncio
 import logging
 import httpx
+import time
+import random
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +35,134 @@ logging.basicConfig(level=logging.INFO)
 KEY = config("STEAM_API_KEY")
 steam = Steam(KEY)
 
+price_server_cache: dict = {}
+CACHE_TTL = 86400  # 24 години
+
+# Browsе-like headers — обходить Akamai
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "uk-UA,uk;q=0.9,en-US;q=0.8",
+    "Accept": "application/json, text/plain, */*",
+    "Referer": "https://store.steampowered.com/",
+}
+
+WORKERS   = 2      # більше — Akamai блокує
+DELAY_MIN = 1.5    # рандомна пауза між запитами
+DELAY_MAX = 2.5
+
+_cooldown_until: float = 0.0
+
+
+async def set_cooldown(seconds: float) -> None:
+    global _cooldown_until
+    _cooldown_until = time.time() + seconds
+    logging.warning(f"[cooldown] пауза {seconds:.0f}s")
+    await asyncio.sleep(seconds)
+
+
+async def wait_cooldown() -> None:
+    remaining = _cooldown_until - time.time()
+    if remaining > 0:
+        await asyncio.sleep(remaining)
+
+
+async def fetch_price(client: httpx.AsyncClient, appid: str, cc: str) -> dict | None:
+    """
+    Прямий httpx запит до Steam Store API з обов'язковим cc= параметром.
+    Саме він повертає price_overview — бібліотека його не передавала.
+    """
+    for attempt in range(1, 5):
+        await wait_cooldown()
+        try:
+            r = await client.get(
+                "https://store.steampowered.com/api/appdetails",
+                params={
+                    "appids": appid,
+                    "cc": cc,           # ← ключовий параметр, без нього немає цін
+                    "filters": "price_overview,basic",
+                },
+                headers=HEADERS,
+                timeout=20,
+            )
+
+            if r.status_code == 429:
+                logging.warning(f"[429] {appid} attempt={attempt}")
+                await set_cooldown(20 * attempt)
+                continue
+
+            if r.status_code == 403:
+                logging.warning(f"[403] {appid} attempt={attempt}")
+                await set_cooldown(30 * attempt)
+                continue
+
+            if r.status_code != 200:
+                logging.warning(f"[{r.status_code}] {appid}")
+                return None
+
+            data = r.json()
+            app_data = data.get(str(appid))
+
+            if not app_data or not app_data.get("success"):
+                return {"status": "unavailable"}
+
+            inner = app_data.get("data") or {}
+
+            if inner.get("is_free"):
+                return {"status": "free"}
+
+            price = inner.get("price_overview")
+            if not price:
+                return {"status": "unavailable"}
+
+            return {
+                "status":            "price",
+                "final_formatted":   price.get("final_formatted", ""),
+                "initial_formatted": price.get("initial_formatted", ""),
+                "discount_percent":  price.get("discount_percent", 0),
+                "final":             price.get("final", 0),
+                "currency":          price.get("currency", ""),
+            }
+
+        except httpx.TimeoutException:
+            logging.warning(f"[timeout] {appid} attempt={attempt}")
+            await asyncio.sleep(3 * attempt)
+        except Exception as e:
+            logging.warning(f"[error] {appid} attempt={attempt}: {e}")
+            await asyncio.sleep(2)
+
+    logging.error(f"[failed] {appid} після 4 спроб")
+    return None
+
+
+async def price_worker(
+    worker_id: int,
+    queue: asyncio.Queue,
+    results: dict,
+    client: httpx.AsyncClient,
+    cc: str,
+) -> None:
+    while True:
+        appid = await queue.get()
+        if appid is None:
+            queue.task_done()
+            break
+        try:
+            price_data = await fetch_price(client, appid, cc)
+            results[appid] = price_data
+            price_server_cache[appid] = {"data": price_data, "ts": time.time()}
+            status = price_data.get("status") if price_data else "error"
+            logging.info(f"[w{worker_id}] {appid} → {status}")
+        except Exception as e:
+            logging.error(f"[w{worker_id}] unhandled {appid}: {e}")
+            results[appid] = None
+        finally:
+            queue.task_done()
+            await asyncio.sleep(random.uniform(DELAY_MIN, DELAY_MAX))
+
 
 @app.get("/")
 def home():
@@ -46,8 +176,7 @@ def api_status():
 
 @app.get("/user/{encoded_url:path}")
 async def get_user_info_path(encoded_url: str):
-    decoded_url = unquote(encoded_url)
-    return await get_user_info(url=decoded_url)
+    return await get_user_info(url=unquote(encoded_url))
 
 
 @app.get("/user")
@@ -79,7 +208,7 @@ async def get_user_info(url: str = Query(...)):
                     break
                 except Exception as e:
                     if "429" in str(e):
-                        logging.warning(f"429 on friends list, retrying in {retry_delay}s...")
+                        logging.warning(f"429 on friends, retrying...")
                         await asyncio.sleep(retry_delay)
                     else:
                         raise
@@ -92,7 +221,7 @@ async def get_user_info(url: str = Query(...)):
                     break
                 except Exception as e:
                     if "429" in str(e):
-                        logging.warning(f"429 on owned games, retrying in {retry_delay}s...")
+                        logging.warning(f"429 on games, retrying...")
                         await asyncio.sleep(retry_delay)
                     else:
                         raise
@@ -105,100 +234,57 @@ async def get_user_info(url: str = Query(...)):
             if "429" in str(e):
                 await asyncio.sleep(retry_delay)
             else:
-                logging.error(f"Error fetching data for {userid}: {e}")
+                logging.error(f"Error for {userid}: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
-    raise HTTPException(status_code=429, detail="Too Many Requests. Please try again later.")
+    raise HTTPException(status_code=429, detail="Too Many Requests.")
 
 
 @app.get("/prices")
 async def get_games_prices(appids: str = Query(...), cc: str = "ua"):
-    """
-    appids — через кому: 730,550,440
-    cc     — код країни (ua, us, pl)
-
-    Повертає словник {appid: price_object | None}
-
-    price_object варіанти:
-      {"status": "free"}                        — безкоштовна гра
-      {"status": "unavailable"}                 — гра є, але не продається в регіоні
-      {"status": "price", "final_formatted": "₴ 549", "initial_formatted": "₴ 549", "discount_percent": 0, ...}
-      None                                      — помилка API (мережа / 429 вичерпано)
-    """
     ids_list = [i.strip() for i in appids.split(",") if i.strip()]
     if not ids_list:
         raise HTTPException(status_code=400, detail="No appids provided")
 
-    # Не більше 10 одночасних запитів до Steam Store
-    semaphore = asyncio.Semaphore(10)
+    result: dict = {}
+    to_fetch: list[str] = []
+    now = time.time()
 
-    async def fetch_one(client: httpx.AsyncClient, appid: str) -> tuple[str, dict | None]:
-        async with semaphore:
-            for attempt in range(1, 4):
-                try:
-                    r = await client.get(
-                        "https://store.steampowered.com/api/appdetails",
-                        params={
-                            "appids": appid,
-                            "cc": cc,
-                            "filters": "basic,price_overview",
-                        },
-                        timeout=15,
-                    )
+    for appid in ids_list:
+        cached = price_server_cache.get(appid)
+        if cached and (now - cached["ts"]) < CACHE_TTL:
+            result[appid] = cached["data"]
+        else:
+            to_fetch.append(appid)
 
-                    # 429 — чекаємо і повторюємо
-                    if r.status_code == 429:
-                        logging.warning(f"429 for appid {appid}, attempt {attempt}/3")
-                        await asyncio.sleep(2 * attempt)
-                        continue
+    if not to_fetch:
+        return result
 
-                    # Інші HTTP помилки — повертаємо None
-                    if r.status_code != 200:
-                        logging.warning(f"HTTP {r.status_code} for appid {appid}")
-                        return appid, None
+    logging.info(f"[prices] кеш={len(result)}, черга={len(to_fetch)}, cc={cc}")
 
-                    data = r.json()
-                    app_data = data.get(str(appid))
+    queue: asyncio.Queue = asyncio.Queue()
+    fetched: dict = {}
 
-                    # Steam повернув success: false — гра не знайдена
-                    if not app_data or not app_data.get("success"):
-                        return appid, {"status": "unavailable"}
-
-                    inner = app_data.get("data") or {}
-
-                    # Безкоштовна гра (CS2, TF2, Dota 2 тощо)
-                    if inner.get("is_free"):
-                        return appid, {"status": "free"}
-
-                    price = inner.get("price_overview")
-
-                    # Гра існує але не продається в цьому регіоні
-                    if price is None:
-                        return appid, {"status": "unavailable"}
-
-                    # Звичайна ціна або знижка
-                    return appid, {
-                        "status": "price",
-                        "final_formatted": price.get("final_formatted", ""),
-                        "initial_formatted": price.get("initial_formatted", ""),
-                        "discount_percent": price.get("discount_percent", 0),
-                        "final": price.get("final", 0),
-                        "currency": price.get("currency", ""),
-                    }
-
-                except Exception as e:
-                    logging.warning(f"fetch_one error appid={appid} attempt={attempt}: {e}")
-                    if attempt < 3:
-                        await asyncio.sleep(1)
-
-            # Всі спроби вичерпано
-            return appid, None
+    for appid in to_fetch:
+        await queue.put(appid)
+    for _ in range(WORKERS):
+        await queue.put(None)  # sentinels
 
     async with httpx.AsyncClient() as client:
-        tasks = [fetch_one(client, appid) for appid in ids_list]
-        results = await asyncio.gather(*tasks)
+        workers = [
+            asyncio.create_task(price_worker(i, queue, fetched, client, cc))
+            for i in range(WORKERS)
+        ]
+        await asyncio.gather(*workers)
 
-    return dict(results)
+    result.update(fetched)
+    return result
+
+
+@app.delete("/prices/cache")
+def clear_price_cache():
+    price_server_cache.clear()
+    return {"message": "Cache cleared"}
 
 
 if __name__ == "__main__":

@@ -72,32 +72,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // ── ПІДРАХУНОК ВИТРАТ ────────────────────────────────────────────────────
   function updateTotalSpent() {
     const spentEl = document.getElementById("total-spent");
     const spentCountEl = document.getElementById("total-spent-count");
     if (!spentEl || !spentCountEl) return;
 
-    let totalKopecks = 0; // сума в мінімальних одиницях (копійки/центи)
+    let totalKopecks = 0;
     let currency = "";
-    let countedGames = 0; // ігор з відомою ціною
-    let loadedGames = 0; // ігор завантажено всього
+    let countedGames = 0;
+    let loadedGames = 0;
 
     for (const game of allGames) {
       const price = priceCache[String(game.appid)];
-      if (price === undefined) continue; // ще не завантажено
+      if (price === undefined) continue;
 
       loadedGames++;
 
       if (price?.status === "price" && price.final > 0) {
-        // price.final — ціна в копійках (Steam зберігає як ціле число)
         totalKopecks += price.final;
         countedGames++;
         if (!currency) currency = price.currency || "";
       }
     }
 
-    // Форматуємо суму
     const total = (totalKopecks / 100).toFixed(2);
     const currencySymbols = { UAH: "₴", USD: "$", EUR: "€", PLN: "zł" };
     const symbol = currencySymbols[currency] || currency;
@@ -108,10 +105,8 @@ document.addEventListener("DOMContentLoaded", function () {
         : 0;
 
     spentEl.textContent = countedGames > 0 ? `${symbol} ${total}` : "...";
-
     spentCountEl.textContent = `за ${countedGames} платних ігор (завантажено ${pct}% цін)`;
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   function matchesPriceFilter(appid) {
     if (!activeFilter) return true;
@@ -159,6 +154,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const data = await res.json();
         Object.assign(priceCache, data);
+
         Object.entries(data).forEach(([appid, price]) => {
           const game = allGames.find((g) => String(g.appid) === appid);
           const name = game?.name || appid;
@@ -170,7 +166,9 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log(`🚫 ${name} — Недоступна`);
           } else if (price.status === "price") {
             const discount =
-              price.discount_percent > 0 ? ` (-${price.discount_percent}%)` : "";
+              price.discount_percent > 0
+                ? ` (-${price.discount_percent}%)`
+                : "";
             console.log(`💰 ${name} — ${price.final_formatted}${discount}`);
           }
         });
@@ -191,7 +189,6 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
 
-        // Оновлюємо суму витрат після кожного батчу
         updateTotalSpent();
       } catch (err) {
         console.error("Price batch fetch error:", err);
@@ -333,19 +330,46 @@ document.addEventListener("DOMContentLoaded", function () {
       friendsInfo.innerHTML = `<h3>Friends</h3><p>Total: ${data.friends?.friends?.length || 0}</p>`;
 
       if (data.friends?.friends?.length) {
+        const allFriends = data.friends.friends;
+
+        const friendSearch = document.createElement("input");
+        friendSearch.type = "text";
+        friendSearch.placeholder = "Введіть ім'я друга.";
+        friendSearch.classList.add("search-input");
+
         const friendsList = document.createElement("div");
         friendsList.classList.add("games-grid");
-        data.friends.friends.forEach((friend) => {
-          const friendItem = document.createElement("div");
-          friendItem.classList.add("friend-item", "fade-in");
-          friendItem.innerHTML = `
-            <img src="${friend.avatar || "https://via.placeholder.com/50"}" alt="Avatar" width="50" height="50"><br>
-            <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">
-              ${friend.personaname || "Unknown"}
-            </a>
-          `;
-          friendsList.appendChild(friendItem);
+
+        function renderFriends(list) {
+          friendsList.innerHTML = "";
+          if (list.length === 0) {
+            friendsList.innerHTML = `<div class="not-found-message">такого друга немає</div>`;
+            return;
+          }
+          list.forEach((friend) => {
+            const friendItem = document.createElement("div");
+            friendItem.classList.add("friend-item", "fade-in");
+            friendItem.innerHTML = `
+              <img src="${friend.avatar || "https://via.placeholder.com/50"}" alt="Avatar" width="50" height="50"><br>
+              <a href="https://steamcommunity.com/profiles/${friend.steamid}" target="_blank">
+                ${friend.personaname || "Unknown"}
+              </a>
+            `;
+            friendsList.appendChild(friendItem);
+          });
+        }
+
+        friendSearch.addEventListener("input", () => {
+          const query = friendSearch.value.toLowerCase();
+          const filtered = allFriends.filter((f) =>
+            (f.personaname || "").toLowerCase().includes(query),
+          );
+          renderFriends(filtered);
         });
+
+        renderFriends(allFriends);
+
+        friendsInfo.appendChild(friendSearch);
         friendsInfo.appendChild(friendsList);
       }
 

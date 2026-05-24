@@ -430,3 +430,8 @@ input:focus {
   color: gray;
   font-size: 0.85rem;
 }
+
+.not-found-message {
+  grid-column: 1/-1;
+  color: red;
+}

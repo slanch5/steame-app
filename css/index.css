@@ -195,11 +195,10 @@ input::placeholder {
 }
 
 .search-input {
-  width: 50%;
-  margin-bottom: 20px;
-  padding: 8px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+  padding: 15px;
+  margin: 0 auto 20px;
+  display: block;
+  width: 535px;
 }
 
 .games-grid {
@@ -342,9 +341,8 @@ input:focus {
   outline: 2px solid rgb(42, 167, 49);
 }
 #notFoundMsg {
-  grid-column: 1 / -1; /* зайняти всю ширину сітки */
-  justify-self: center; /* по горизонталі */
-  text-align: center;
+  grid-column: 1 / -1;
+
   color: red;
   font-weight: bold;
   margin-top: 20px;
@@ -401,6 +399,10 @@ input:focus {
   input {
     width: 100%;
   }
+
+  .search-input {
+    width: 100%;
+  }
 }
 @media (max-width: 470px) {
   .st__title {
@@ -429,4 +431,9 @@ input:focus {
 .total-spent__sub {
   color: gray;
   font-size: 0.85rem;
+}
+
+.not-found-message {
+  grid-column: 1/-1;
+  color: red;
 }

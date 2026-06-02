@@ -35,9 +35,9 @@ KEY = config("STEAM_API_KEY")
 steam = Steam(KEY)
 
 price_server_cache: dict = {}
-CACHE_TTL = 86400  # 24 години
+CACHE_TTL = 86400  
 
-# Browsе-like headers — обходить Akamai
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -112,7 +112,7 @@ async def fetch_prices_batch(
                 "https://store.steampowered.com/api/appdetails",
                 params={
                     "appids": ids_param,
-                    "cc": cc,           # ← ключовий параметр, без нього немає цін
+                    "cc": cc,          
                     "filters": "price_overview",
                 },
                 headers=HEADERS,

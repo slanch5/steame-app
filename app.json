@@ -1,0 +1,17 @@
+{
+  "name": "Steam User Info",
+  "description": "FastAPI app that shows Steam user profile, friends, games, playtime, and game prices.",
+  "repository": "https://github.com/slanch5/steame-app",
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "env": {
+    "STEAM_API_KEY": {
+      "description": "Steam Web API key used to read profile, friends, and owned games data.",
+      "required": true
+    }
+  }
+}
